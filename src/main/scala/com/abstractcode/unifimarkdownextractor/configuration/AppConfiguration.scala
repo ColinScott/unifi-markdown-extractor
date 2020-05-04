@@ -28,8 +28,8 @@ object AppConfiguration {
 
   def getUri(env: Map[String, String], key: String): ValidatedNel[ParseError, Uri] =
     env.get(key)
-      .map(e => Uri.fromString(e).leftMap(_ => ParseError("SERVER_URL", InvalidFormat)).toValidatedNel)
-      .getOrElse(ParseError("SERVER_URL", NotProvidedOrEmpty).invalidNel)
+      .map(e => Uri.fromString(e).leftMap(_ => ParseError(key, InvalidFormat)).toValidatedNel)
+      .getOrElse(ParseError(key, NotProvidedOrEmpty).invalidNel)
 
   def getNonEmptyString(env: Map[String, String], key: String): ValidatedNel[ParseError, String] = env.get(key)
     .filter(!_.trim.isEmpty)

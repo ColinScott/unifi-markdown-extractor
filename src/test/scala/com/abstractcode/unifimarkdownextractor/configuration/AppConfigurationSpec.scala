@@ -66,7 +66,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
         "PASSWORD" -> credentials.password
       )
 
-      val expected = ParseError("SERVER_URL", InvalidFormat).invalidNel
+      val expected = ParseError("SERVER_URI", InvalidFormat).invalidNel
 
       AppConfiguration(env) == expected
     }
@@ -79,7 +79,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
         "PASSWORD" -> credentials.password
       )
 
-      val expected = ParseError("SERVER_URL", NotProvidedOrEmpty).invalidNel
+      val expected = ParseError("SERVER_URI", NotProvidedOrEmpty).invalidNel
 
       AppConfiguration(env) == expected
     }
