@@ -18,7 +18,8 @@ object Main extends IOApp {
   def process(appConfiguration: AppConfiguration, client: Client[IO]): IO[ExitCode] = {
     val uniFiApi = new HttpUniFiApi[IO](client)
     for {
-      _ <- uniFiApi.authenticate(appConfiguration)
+      authCookies <- uniFiApi.authenticate(appConfiguration)
+      _ <- IO(println(authCookies))
     } yield ExitCode.Success
   }
 
