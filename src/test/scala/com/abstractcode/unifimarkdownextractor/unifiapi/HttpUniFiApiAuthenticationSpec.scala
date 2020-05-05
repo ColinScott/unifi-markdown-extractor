@@ -4,7 +4,7 @@ import cats.effect.IO
 import com.abstractcode.unifimarkdownextractor.Generators._
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.AuthCookies
-import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse}
+import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, Fixture, InvalidAuthenticationResponse}
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.circe.CirceEntityDecoder._
@@ -66,21 +66,15 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
   }
 
   property("missing unifises cookie") = forAll {
-    (appConfiguration: AppConfiguration, authCookies: AuthCookies) => {
+    (authCookies: AuthCookies) => {
       val mockServer = HttpRoutes.of[IO] {
-        case req@POST -> Root / "api" / "login" =>
-          for {
-            credentials <- req.as[Credentials]
-            response <- if (credentials == appConfiguration.credentials)
-              IO.pure(
-                Response[IO](status = Status.Ok).addCookie("csrf_token", authCookies.csrfToken)
-              )
-            else
-              InternalServerError()
-          } yield response
+        case POST -> Root / "api" / "login" =>
+          IO.pure(
+            Response[IO](status = Status.Ok).addCookie("csrf_token", authCookies.csrfToken)
+          )
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
 
       val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 
@@ -92,21 +86,15 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
   }
 
   property("missing csrf_token cookie") = forAll {
-    (appConfiguration: AppConfiguration, authCookies: AuthCookies) => {
+    (authCookies: AuthCookies) => {
       val mockServer = HttpRoutes.of[IO] {
-        case req@POST -> Root / "api" / "login" =>
-          for {
-            credentials <- req.as[Credentials]
-            response <- if (credentials == appConfiguration.credentials)
-              IO.pure(
-                Response[IO](status = Status.Ok).addCookie("unifises", authCookies.uniFiSes)
-              )
-            else
-              InternalServerError()
-          } yield response
+        case POST -> Root / "api" / "login" =>
+          IO.pure(
+            Response[IO](status = Status.Ok).addCookie("unifises", authCookies.uniFiSes)
+          )
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
 
       val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 

@@ -7,11 +7,11 @@ import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
 import com.abstractcode.unifimarkdownextractor.unifiapi.AddAuthCookies._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
-import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse}
+import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse, InvalidResponse, TokenUnauthorised, UniFiError}
 import fs2.Stream
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.http4s.Status.Successful
+import org.http4s.Status.{ClientError, Successful}
 import org.http4s.client.Client
 import org.http4s.{Method, Request, ResponseCookie}
 import org.http4s.circe.CirceEntityDecoder._
@@ -48,9 +48,14 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
       uri = appConfiguration.serverUri / "api" / "self" / "sites"
     ).addAuthCookies(authCookies)
 
-    for {
-      sitesDetails <- client.expect[SitesDetails](getRequest)
-    } yield sitesDetails.data
+    client.run(getRequest).use { response =>
+      response.status.responseClass match {
+        case Successful => response.as[SitesDetails].map(_.data)
+          .handleErrorWith(_ => monadError.raiseError(InvalidResponse))
+        case ClientError if response.status.code == 401 => monadError.raiseError[List[Site]](TokenUnauthorised)
+        case _ => monadError.raiseError[List[Site]](UniFiError(response.status))
+      }
+    }
   }
 
   def getCookieValue(cookies: List[ResponseCookie])(name: String): Option[String] = cookies.filter(_.name == name)

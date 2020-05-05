@@ -1,11 +1,13 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi
 
+import cats.data.NonEmptyList
 import cats.effect.IO
-import com.abstractcode.unifimarkdownextractor.Fixture
+import com.abstractcode.unifimarkdownextractor.{Fixture, InvalidResponse, TokenUnauthorised, UniFiError}
 import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
 import io.circe.syntax._
-import org.http4s.{HttpRoutes, RequestCookie}
+import org.http4s.{Challenge, HttpRoutes, RequestCookie, Response, Status, headers}
 import org.http4s.circe._
 import org.http4s.client.Client
 import org.http4s.dsl.io._
@@ -45,6 +47,44 @@ object HttpUniFiApiSitesSpec extends Properties("HttpUniFiApi sites") {
       val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
 
       httpUniFiApp.sites(authCookies).unsafeRunSync() == Nil
+    }
+  }
+
+  property("unauthorised") = forAll {
+    (appConfiguration: AppConfiguration) => {
+      val mockServer = HttpRoutes.of[IO] {
+        case GET -> Root / "api" / "self" / "sites" => Unauthorized(
+          headers.`WWW-Authenticate`(NonEmptyList.of(Challenge("Basic", "test", Map.empty)))
+        )
+      }.orNotFound
+
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer),appConfiguration)
+
+      httpUniFiApp.sites(Fixture.fixedAuthCookies).attempt.unsafeRunSync() == Left(TokenUnauthorised)
+    }
+  }
+
+  property("unexpected status code") = forAll {
+    (status: Status) => {
+      val mockServer = HttpRoutes.of[IO] {
+        case GET -> Root / "api" / "self" / "sites" => IO.pure(Response[IO](status = status))
+      }.orNotFound
+
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+
+      httpUniFiApp.sites(Fixture.fixedAuthCookies).attempt.unsafeRunSync() == Left(UniFiError(status))
+    }
+  }
+
+  property("bad response") = forAll {
+    (notJson: String) => {
+      val mockServer = HttpRoutes.of[IO] {
+        case GET -> Root / "api" / "self" / "sites" => Ok(notJson)
+      }.orNotFound
+
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+
+      httpUniFiApp.sites(Fixture.fixedAuthCookies).attempt.unsafeRunSync() == Left(InvalidResponse)
     }
   }
 }

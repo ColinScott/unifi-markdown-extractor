@@ -3,10 +3,11 @@ package com.abstractcode.unifimarkdownextractor
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
-import org.http4s.Uri
+import org.http4s.{Status, Uri}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.freqTuple
 import org.scalacheck.{Arbitrary, Gen}
+import org.http4s.Status._
 
 object Generators {
   val one = 1 // Work around Scala 2.13.2 bug
@@ -55,5 +56,16 @@ object Generators {
     for {
       sites <- Gen.listOf(sitesDetailsSiteGen)
     } yield SitesDetails(sites)
+  }
+
+  implicit val arbitraryStatus: Arbitrary[Status] = Arbitrary {
+    Gen.oneOf(
+      Forbidden,
+      Gone,
+      NotImplemented,
+      GatewayTimeout,
+      VariantAlsoNegotiates,
+      UpgradeRequired
+    )
   }
 }
