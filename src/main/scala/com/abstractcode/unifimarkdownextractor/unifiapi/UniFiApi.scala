@@ -27,13 +27,12 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F])(implicit monadError: Applicat
 
     client.run(postRequest).use { response =>
       response.status.responseClass match {
-        case Successful => {
+        case Successful =>
           val getCookies: String => Option[String] = getCookieValue(response.cookies)
           val uniFiSes = getCookies("unifises")
           val csrfToken = getCookies("csrf_token")
 
           monadError.fromOption(uniFiSes.map2(csrfToken)(AuthCookies), InvalidAuthenticationResponse)
-        }
         case _ => monadError.raiseError[AuthCookies](AuthenticationFailure(response.status))
       }
     }

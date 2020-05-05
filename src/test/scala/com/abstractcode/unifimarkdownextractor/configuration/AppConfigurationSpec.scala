@@ -2,32 +2,13 @@ package com.abstractcode.unifimarkdownextractor.configuration
 
 import cats.data._
 import cats.implicits._
+import com.abstractcode.unifimarkdownextractor.Generators._
 import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
 import org.http4s.Uri
-import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen.freqTuple
 import org.scalacheck.Prop.{forAll, propBoolean}
-import org.scalacheck.{Arbitrary, Gen, Properties}
+import org.scalacheck.{Gen, Properties}
 
 object AppConfigurationSpec extends Properties("AppConfiguration") {
-
-  val one = 1 // Work around Scala 2.13.2 bug
-  val nonEmptyOrWhitespaceString: Gen[String] = arbitrary[String].suchThat(!_.trim.isEmpty)
-  val whitespaceString: Gen[String] = Gen.chooseNum(one - 1, 32).map(" " * _)
-
-  implicit val arbitraryUri: Arbitrary[Uri] = Arbitrary {
-    for {
-      protocol <- Gen.frequency(List((5, "http://"), (10, "https://")).map(freqTuple): _*)
-      uri <- Gen.identifier
-      port <- Gen.chooseNum[Int](minT = 1, maxT = 65535)
-    } yield Uri.unsafeFromString(s"$protocol$uri:$port")
-  }
-  implicit val arbitraryCredentials: Arbitrary[Credentials] = Arbitrary {
-    for {
-      username <- nonEmptyOrWhitespaceString
-      password <- nonEmptyOrWhitespaceString
-    } yield Credentials(username, password)
-  }
 
   val badUsernameCredentials: Gen[Credentials] = for {
     username <- whitespaceString
