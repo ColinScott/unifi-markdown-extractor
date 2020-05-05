@@ -50,7 +50,6 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
 
     for {
       sitesDetails <- client.expect[SitesDetails](getRequest)
-      _ <- Sync[F].delay(println(sitesDetails))
     } yield sitesDetails.data
   }
 

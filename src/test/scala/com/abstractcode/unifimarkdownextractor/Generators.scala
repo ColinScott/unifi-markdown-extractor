@@ -36,8 +36,8 @@ object Generators {
 
   implicit val arbitraryAuthCookies: Arbitrary[AuthCookies] = Arbitrary {
     for {
-      uniFiSes <- nonEmptyString
-      csrfToken <- nonEmptyString
+      uniFiSes <- Gen.alphaStr
+      csrfToken <- Gen.alphaStr
     } yield AuthCookies(uniFiSes, csrfToken)
   }
 
