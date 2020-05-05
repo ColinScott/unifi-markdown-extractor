@@ -1,10 +1,10 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi
 
 import cats.effect.IO
-import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse}
 import com.abstractcode.unifimarkdownextractor.Generators._
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
-import com.abstractcode.unifimarkdownextractor.unifiapi.UniFiApi.AuthCookies
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.AuthCookies
+import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse}
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.circe.CirceEntityDecoder._
@@ -12,16 +12,9 @@ import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.implicits._
 import org.scalacheck.Prop.{forAll, propBoolean}
-import org.scalacheck.{Arbitrary, Properties}
+import org.scalacheck.Properties
 
 object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentication") {
-
-  implicit val arbitraryAuthCookies: Arbitrary[AuthCookies] = Arbitrary {
-    for {
-      uniFiSes <- nonEmptyString
-      csrfToken <- nonEmptyString
-    } yield AuthCookies(uniFiSes, csrfToken)
-  }
 
   property("successful authentication") = forAll {
     (appConfiguration: AppConfiguration, authCookies: AuthCookies) => {
@@ -40,9 +33,9 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           } yield response
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer))
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
 
-      val receivedCookies = httpUniFiApp.authenticate(appConfiguration).unsafeRunSync()
+      val receivedCookies = httpUniFiApp.authenticate().unsafeRunSync()
 
       receivedCookies == authCookies
     }
@@ -61,9 +54,9 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           } yield response
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer))
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
 
-      val response = httpUniFiApp.authenticate(appConfiguration).attempt.unsafeRunSync()
+      val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 
       response match {
         case Left(AuthenticationFailure(s)) if s.code == BadRequest.code => true
@@ -87,9 +80,9 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           } yield response
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer))
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
 
-      val response = httpUniFiApp.authenticate(appConfiguration).attempt.unsafeRunSync()
+      val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 
       response match {
         case Left(InvalidAuthenticationResponse) => true
@@ -113,9 +106,9 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           } yield response
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer))
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
 
-      val response = httpUniFiApp.authenticate(appConfiguration).attempt.unsafeRunSync()
+      val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 
       response match {
         case Left(InvalidAuthenticationResponse) => true

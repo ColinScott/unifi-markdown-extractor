@@ -3,22 +3,26 @@ package com.abstractcode.unifimarkdownextractor.unifiapi
 import cats.ApplicativeError
 import cats.effect._
 import cats.implicits._
-import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse}
 import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
-import com.abstractcode.unifimarkdownextractor.unifiapi.UniFiApi.AuthCookies
+import com.abstractcode.unifimarkdownextractor.unifiapi.AddAuthCookies._
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
+import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse}
 import fs2.Stream
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.Status.Successful
-import org.http4s.client._
+import org.http4s.client.Client
 import org.http4s.{Method, Request, ResponseCookie}
+import org.http4s.circe.CirceEntityDecoder._
 
 trait UniFiApi[F[_]] {
-  def authenticate(appConfiguration: AppConfiguration): F[AuthCookies]
+  def authenticate(): F[AuthCookies]
+  def sites(authCookies: AuthCookies): F[List[Site]]
 }
 
-class HttpUniFiApi[F[_] : Sync](client: Client[F])(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
-  def authenticate(appConfiguration: AppConfiguration): F[AuthCookies] = {
+class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
+  def authenticate(): F[AuthCookies] = {
     val postRequest = Request[F](
       method = Method.POST,
       uri = appConfiguration.serverUri / "api" / "login",
@@ -38,13 +42,38 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F])(implicit monadError: Applicat
     }
   }
 
+  def sites(authCookies: AuthCookies): F[List[Site]] = {
+    val getRequest: Request[F] = Request[F](
+      method = Method.GET,
+      uri = appConfiguration.serverUri / "api" / "self" / "sites"
+    ).addAuthCookies(authCookies)
+
+    for {
+      sitesDetails <- client.expect[SitesDetails](getRequest)
+      _ <- Sync[F].delay(println(sitesDetails))
+    } yield sitesDetails.data
+  }
+
   def getCookieValue(cookies: List[ResponseCookie])(name: String): Option[String] = cookies.filter(_.name == name)
     .map(_.content)
     .headOption
+
+  def addCookies(request: Request[F], authCookies: AuthCookies): Request[F] = request
+    .addCookie("unifises", authCookies.uniFiSes)
+    .addCookie("csrf_token", authCookies.csrfToken)
 }
 
-object UniFiApi {
+trait AddAuthCookies[R] {
+  def addAuthCookies(request: R, authCookies: AuthCookies): R
+}
 
-  case class AuthCookies(uniFiSes: String, csrfToken: String)
+object AddAuthCookies {
+  def apply[R](implicit sh: AddAuthCookies[R]): AddAuthCookies[R] = sh
 
+  implicit class AddAuthCookiesOps[R : AddAuthCookies](val request: R) {
+    def addAuthCookies(authCookies: AuthCookies): R = AddAuthCookies[R].addAuthCookies(request, authCookies)
+  }
+
+  implicit def ioRequestAddAuthCookies[F[_]]: AddAuthCookies[Request[F]] =
+    (request, authCookies) => request.addCookie("unifises", authCookies.uniFiSes).addCookie("csrf_token", authCookies.csrfToken)
 }
