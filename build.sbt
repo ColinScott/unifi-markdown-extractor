@@ -8,11 +8,14 @@ val catsVersion = "2.1.1"
 val catsEffectVersion = "2.1.3"
 val circeVersion = "0.13.0"
 val http4sVersion = "0.21.3"
+val logbackVersion = "1.2.3"
 
 val scalaCheckVersion = "1.14.3"
 val spec2Version = "4.9.4"
 
 libraryDependencies ++= Seq(
+  "ch.qos.logback" % "logback-classic" % logbackVersion,
+
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
