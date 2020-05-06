@@ -4,17 +4,17 @@ import cats.ApplicativeError
 import cats.effect._
 import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
-import com.abstractcode.unifimarkdownextractor.unifiapi.AddAuthCookies._
+import com.abstractcode.unifimarkdownextractor.infrastructure.AddAuthCookies._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
-import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, InvalidAuthenticationResponse, InvalidResponse, TokenUnauthorised, UniFiError}
+import com.abstractcode.unifimarkdownextractor._
 import fs2.Stream
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.Status.{ClientError, Successful}
+import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.client.Client
 import org.http4s.{Method, Request, Response, ResponseCookie}
-import org.http4s.circe.CirceEntityDecoder._
 
 trait UniFiApi[F[_]] {
   def authenticate(): F[AuthCookies]
@@ -24,6 +24,10 @@ trait UniFiApi[F[_]] {
 
 class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
   def authenticate(): F[AuthCookies] = {
+    def getCookieValue(cookies: List[ResponseCookie])(name: String): Option[String] = cookies.filter(_.name == name)
+      .map(_.content)
+      .headOption
+
     val postRequest = Request[F](
       method = Method.POST,
       uri = appConfiguration.serverUri / "api" / "login",
@@ -78,23 +82,6 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
       }
     }
   }
-
-  def getCookieValue(cookies: List[ResponseCookie])(name: String): Option[String] = cookies.filter(_.name == name)
-    .map(_.content)
-    .headOption
 }
 
-trait AddAuthCookies[R] {
-  def addAuthCookies(request: R, authCookies: AuthCookies): R
-}
 
-object AddAuthCookies {
-  def apply[R](implicit sh: AddAuthCookies[R]): AddAuthCookies[R] = sh
-
-  implicit class AddAuthCookiesOps[R : AddAuthCookies](val request: R) {
-    def addAuthCookies(authCookies: AuthCookies): R = AddAuthCookies[R].addAuthCookies(request, authCookies)
-  }
-
-  implicit def ioRequestAddAuthCookies[F[_]]: AddAuthCookies[Request[F]] =
-    (request, authCookies) => request.addCookie("unifises", authCookies.uniFiSes).addCookie("csrf_token", authCookies.csrfToken)
-}
