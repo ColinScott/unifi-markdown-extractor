@@ -19,6 +19,7 @@ import org.http4s.circe.CirceEntityDecoder._
 trait UniFiApi[F[_]] {
   def authenticate(): F[AuthCookies]
   def sites(authCookies: AuthCookies): F[List[Site]]
+  def logout(authCookies: AuthCookies): F[Unit]
 }
 
 class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
@@ -54,6 +55,21 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
           .handleErrorWith(_ => monadError.raiseError(InvalidResponse))
         case ClientError if response.status.code == 401 => monadError.raiseError[List[Site]](TokenUnauthorised)
         case _ => monadError.raiseError[List[Site]](UniFiError(response.status))
+      }
+    }
+  }
+
+  def logout(authCookies: AuthCookies): F[Unit] = {
+    val getRequest: Request[F] = Request[F](
+      method = Method.GET,
+      uri = appConfiguration.serverUri / "api" / "logout"
+    ).addAuthCookies(authCookies)
+
+    client.run(getRequest).use { response =>
+      response.status.responseClass match {
+        case Successful => Sync[F].pure(())
+        case ClientError if response.status.code == 401 => monadError.raiseError[Unit](TokenUnauthorised)
+        case _ => monadError.raiseError[Unit](UniFiError(response.status))
       }
     }
   }
