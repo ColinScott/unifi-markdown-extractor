@@ -10,8 +10,8 @@ trait AddAuthCookies[R] {
 object AddAuthCookies {
   def apply[R](implicit sh: AddAuthCookies[R]): AddAuthCookies[R] = sh
 
-  implicit class AddAuthCookiesOps[R : AddAuthCookies](val request: R) {
-    def addAuthCookies(authCookies: AuthCookies): R = AddAuthCookies[R].addAuthCookies(request, authCookies)
+  implicit class AddAuthCookiesOps[R](val request: R) extends AnyVal {
+    def addAuthCookies(authCookies: AuthCookies)(implicit a: AddAuthCookies[R]): R = a.addAuthCookies(request, authCookies)
   }
 
   implicit def ioRequestAddAuthCookies[F[_]]: AddAuthCookies[Request[F]] =
