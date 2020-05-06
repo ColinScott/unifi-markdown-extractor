@@ -19,7 +19,7 @@ object SitesDetails {
   implicit val encodeSite: Encoder[Site] = Encoder.forProduct6(
     "_id",
     "name",
-    "description",
+    "desc",
     "role",
     "attr_hidden_id",
     "attr_no_delete"
@@ -28,7 +28,7 @@ object SitesDetails {
   implicit val decodeSite: Decoder[Site] = Decoder.forProduct6(
     "_id",
     "name",
-    "description",
+    "desc",
     "role",
     "attr_hidden_id",
     "attr_no_delete"

@@ -10,3 +10,4 @@ object SitesDetailsSpec extends Properties("SiteDetails JSON") {
     (sitesDetails: SitesDetails) => sitesDetails.asJson.as[SitesDetails] == Right(sitesDetails)
   }
 }
+
