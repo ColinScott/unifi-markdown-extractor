@@ -22,6 +22,7 @@ object Main extends IOApp {
       _ <- IO(println(authCookies))
       sites <- uniFiApi.sites(authCookies)
       _ <- IO(println(sites))
+      _ <- uniFiApi.logout(authCookies)
     } yield ExitCode.Success
   }
 

@@ -47,7 +47,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     val getRequest: Request[F] = Request[F](
       method = Method.GET,
       uri = appConfiguration.serverUri / "api" / "self" / "sites"
-    ).addAuthCookies(authCookies)
+    )
 
     handleWithAuthentication(
       getRequest,
@@ -60,7 +60,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     val getRequest: Request[F] = Request[F](
       method = Method.GET,
       uri = appConfiguration.serverUri / "api" / "logout"
-    ).addAuthCookies(authCookies)
+    )
 
     handleWithAuthentication(getRequest, authCookies, _ => Sync[F].pure(()))
   }
