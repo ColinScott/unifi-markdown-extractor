@@ -1,7 +1,7 @@
 package com.abstractcode.unifimarkdownextractor
 
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SiteId, SitesDetails}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
 import org.http4s.{Status, Uri}
 import org.scalacheck.Arbitrary.arbitrary
@@ -42,6 +42,11 @@ object Generators {
     } yield AuthCookies(uniFiSes, csrfToken)
   }
 
+  val siteIdGen: Gen[SiteId] = for {
+    id <- Gen.identifier
+  } yield SiteId(id)
+  implicit val arbitrarySiteId: Arbitrary[SiteId] = Arbitrary(siteIdGen)
+
   val sitesDetailsSiteGen: Gen[Site] = for {
     id <- Gen.identifier
     name <- Gen.identifier
@@ -49,7 +54,7 @@ object Generators {
     role <- Gen.identifier
     hiddenId <- Gen.option(Gen.identifier)
     noDelete <- Gen.option(Gen.oneOf(List(true, false)))
-  } yield Site(id, name, description, role, hiddenId, noDelete)
+  } yield Site(SiteId(id), name, description, role, hiddenId, noDelete)
   implicit val arbitrarySitesDetailsSite: Arbitrary[Site] = Arbitrary(sitesDetailsSiteGen)
 
   implicit val arbitrarySitesDetails: Arbitrary[SitesDetails] = Arbitrary {

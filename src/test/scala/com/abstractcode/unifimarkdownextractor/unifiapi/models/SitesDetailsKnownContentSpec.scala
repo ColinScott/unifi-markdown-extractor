@@ -40,8 +40,8 @@ class SitesDetailsKnownContentSpec extends Specification { def is: SpecStructure
     val expected = Right(
       SitesDetails(
         List(
-          Site("12345678", "default", "Default", "admin", Some("default"), Some(true)),
-          Site("9876521213", "erhqpnmlh", "Other", "user", None, None)
+          Site(SiteId("12345678"), "default", "Default", "admin", Some("default"), Some(true)),
+          Site(SiteId("9876521213"), "erhqpnmlh", "Other", "user", None, None)
         )
       )
     )

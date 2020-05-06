@@ -35,7 +35,7 @@ class SitesDetailsSiteKnownDetailsSpec extends Specification {
   def decodeFromKnownJsonWithOptional: MatchResult[Any] = {
     val decoded = parse(knownContentWithOptional).flatMap(_.as[Site])
     val expected = Right(Site(
-      id = "12345678",
+      id = SiteId("12345678"),
       name = "default",
       description = "Default",
       role = "admin",
@@ -48,7 +48,7 @@ class SitesDetailsSiteKnownDetailsSpec extends Specification {
   def decodeFromKnownJsonWithoutOptional: MatchResult[Any] = {
     val decoded = parse(knownContentWithoutOptional).flatMap(_.as[Site])
     val expected = Right(Site(
-      id = "9876521213",
+      id = SiteId("9876521213"),
       name = "erhqpnmlh",
       description = "Other",
       role = "user",

@@ -1,5 +1,6 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
@@ -8,7 +9,7 @@ case class SitesDetails(data: List[Site])
 
 object SitesDetails {
   case class Site(
-    id: String,
+    id: SiteId,
     name: String,
     description: String,
     role: String,
@@ -16,7 +17,7 @@ object SitesDetails {
     noDelete: Option[Boolean]
   )
 
-  implicit val encodeSite: Encoder[Site] = Encoder.forProduct6(
+  implicit val encodeSite: Encoder[Site] = Encoder.forProduct6[Site, SiteId, String, String, String, Option[String], Option[Boolean]](
     "_id",
     "name",
     "desc",
@@ -25,7 +26,7 @@ object SitesDetails {
     "attr_no_delete"
   )(s => (s.id, s.name, s.description, s.role, s.hiddenId, s.noDelete))
 
-  implicit val decodeSite: Decoder[Site] = Decoder.forProduct6(
+  implicit val decodeSite: Decoder[Site] = Decoder.forProduct6[Site, SiteId, String, String, String, Option[String], Option[Boolean]](
     "_id",
     "name",
     "desc",
