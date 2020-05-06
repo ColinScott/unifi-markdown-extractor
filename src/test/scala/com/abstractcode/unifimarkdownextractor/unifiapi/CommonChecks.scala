@@ -18,7 +18,7 @@ object CommonChecks {
       RequestCookie("csrf_token", authCookies.csrfToken)
     )
     val mockServer = HttpRoutes.of[IO] {
-      case req@GET -> _ =>
+      case req@ _ =>
         if (req.cookies.toSet == expectedCookies)
           validResponse
         else
@@ -32,7 +32,7 @@ object CommonChecks {
 
   def unauthorised[R](apiMethod: UniFiApi[IO] => IO[R]): Prop = {
     val mockServer = HttpRoutes.of[IO] {
-      case GET -> _ => Unauthorized(
+      case _ => Unauthorized(
         headers.`WWW-Authenticate`(NonEmptyList.of(Challenge("Basic", "test", Map.empty)))
       )
     }.orNotFound
@@ -44,7 +44,7 @@ object CommonChecks {
 
   def unexpectedStatus[R](status: Status, apiMethod: UniFiApi[IO] => IO[R]): Prop = {
     val mockServer = HttpRoutes.of[IO] {
-      case GET -> _ => IO.pure(Response[IO](status = status))
+      case _ => IO.pure(Response[IO](status = status))
     }.orNotFound
 
     val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
@@ -54,7 +54,7 @@ object CommonChecks {
 
   def invalidResponseBody[R](notJson: String, apiMethod: UniFiApi[IO] => IO[R]) : Prop = {
     val mockServer = HttpRoutes.of[IO] {
-      case GET -> _ => Ok(notJson)
+      case _ => Ok(notJson)
     }.orNotFound
 
     val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)

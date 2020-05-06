@@ -44,25 +44,25 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
   }
 
   def sites(authCookies: AuthCookies): F[List[Site]] = {
-    val getRequest: Request[F] = Request[F](
+    val request: Request[F] = Request[F](
       method = Method.GET,
       uri = appConfiguration.serverUri / "api" / "self" / "sites"
     )
 
     handleWithAuthentication(
-      getRequest,
+      request,
       authCookies,
       response => response.as[SitesDetails].map(_.data)
     )
   }
 
   def logout(authCookies: AuthCookies): F[Unit] = {
-    val getRequest: Request[F] = Request[F](
-      method = Method.GET,
+    val request: Request[F] = Request[F](
+      method = Method.POST,
       uri = appConfiguration.serverUri / "api" / "logout"
     )
 
-    handleWithAuthentication(getRequest, authCookies, _ => Sync[F].pure(()))
+    handleWithAuthentication(request, authCookies, _ => Sync[F].pure(()))
   }
 
   def handleWithAuthentication[R](

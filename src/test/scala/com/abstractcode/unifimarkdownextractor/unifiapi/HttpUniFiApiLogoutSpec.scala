@@ -17,7 +17,7 @@ object HttpUniFiApiLogoutSpec extends Properties("HttpUniFiApi authentication") 
   property("successful logout") = forAll {
     (authCookies: AuthCookies) => {
       val mockServer = HttpRoutes.of[IO] {
-        case GET -> Root / "api" / "logout" => Ok()
+        case POST -> Root / "api" / "logout" => Ok()
       }.orNotFound
 
       val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
