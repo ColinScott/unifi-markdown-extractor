@@ -7,8 +7,9 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect._
 import cats.implicits._
+import com.abstractcode.unifimarkdownextractor.MarkdownTableConverter.Column
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, ParseError}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Network, Site}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, LocalNetwork, Network, Site}
 import com.abstractcode.unifimarkdownextractor.unifiapi.{HttpUniFiApi, UniFiApi}
 import javax.net.ssl.{SSLContext, X509TrustManager}
 import org.http4s.client.Client
@@ -32,9 +33,26 @@ object Main extends IOApp {
   def showNetworks(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] = {
     for {
       networksList <- sites.traverse(s => uniFiApi.networks(authCookies)(s.name))
-      _ <- networksList.traverse(l => IO(println(l)))
-
+      _ <- networksList.traverse(l => networksToTable(l))
     } yield ()
+  }
+
+  def networksToTable(networks: List[Network]): IO[Unit] = {
+    val localNetworks: List[LocalNetwork] = networks
+      .flatMap(_ match { case l: LocalNetwork => Some(l) case _ => None })
+      .sortBy(_.vlan.map(_.id).getOrElse(1: Short))
+
+    val converter: NonEmptyList[LocalNetwork] => String = MarkdownTableConverter.convert[LocalNetwork](
+      NonEmptyList.of(
+        Column[LocalNetwork]("Network", _.name.name),
+        Column[LocalNetwork]("VLAN", _.vlan.map(_.id.toString).getOrElse("1")),
+        Column[LocalNetwork]("Network", _.ipSubnet.toString)
+      )
+    )
+
+   NonEmptyList.fromList(localNetworks)
+      .map(n => IO(println(converter(n))))
+      .getOrElse(IO.pure(()))
   }
 
   def showNetworkListList(networksList: List[List[Network]]): IO[Unit] = for {

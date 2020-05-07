@@ -3,7 +3,9 @@ package com.abstractcode.unifimarkdownextractor.unifiapi.models
 import cats.implicits._
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
 
-case class CidrV4(networkAddress: IpAddressV4, prefixLength: Byte)
+case class CidrV4(networkAddress: IpAddressV4, prefixLength: Byte) {
+  override def toString: String = s"$networkAddress/$prefixLength"
+}
 
 object CidrV4 {
   implicit val cidrV4Encoder: Encoder[CidrV4] = (r: CidrV4) => Json.fromString(s"${r.networkAddress}/${r.prefixLength}")
