@@ -1,11 +1,12 @@
 package com.abstractcode.unifimarkdownextractor
 
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.Network.{NetworkName, VLan}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site.SiteName
 import com.abstractcode.unifimarkdownextractor.unifiapi.models._
 import org.http4s.{Status, Uri}
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen.freqTuple
+import org.scalacheck.Gen._
 import org.scalacheck.{Arbitrary, Gen}
 import org.http4s.Status._
 
@@ -14,24 +15,26 @@ object Generators {
   val nonEmptyString: Gen[String] = arbitrary[String].suchThat(!_.isEmpty)
   val nonEmptyOrWhitespaceString: Gen[String] = arbitrary[String].suchThat(!_.trim.isEmpty)
   val whitespaceString: Gen[String] = Gen.chooseNum(one - 1, 32).map(" " * _)
+  val hiddenId: Gen[Option[String]] = Gen.option(Gen.identifier)
+  val noDelete: Gen[Option[Boolean]] = Gen.option(Gen.oneOf(List(true, false)))
 
-  implicit val uriGen: Gen[Uri] = for {
+  implicit val uri: Gen[Uri] = for {
     protocol <- Gen.frequency(List((5, "http://"), (10, "https://")).map(freqTuple): _*)
     uri <- Gen.identifier
     port <- Gen.chooseNum[Int](minT = 1, maxT = 65535)
   } yield Uri.unsafeFromString(s"$protocol$uri:$port")
-  implicit val arbitraryUri: Arbitrary[Uri] = Arbitrary(uriGen)
+  implicit val arbitraryUri: Arbitrary[Uri] = Arbitrary(uri)
 
-  implicit val credentialsGen: Gen[Credentials] = for {
+  implicit val credentials: Gen[Credentials] = for {
     username <- nonEmptyOrWhitespaceString
     password <- nonEmptyOrWhitespaceString
   } yield Credentials(username, password)
-  implicit val arbitraryCredentials: Arbitrary[Credentials] = Arbitrary(credentialsGen)
+  implicit val arbitraryCredentials: Arbitrary[Credentials] = Arbitrary(credentials)
 
   implicit val arbitraryAppConfiguration: Arbitrary[AppConfiguration] = Arbitrary {
     for {
-      uri <- uriGen
-      credentials <- credentialsGen
+      uri <- uri
+      credentials <- credentials
     } yield AppConfiguration(uri, credentials)
   }
 
@@ -42,30 +45,25 @@ object Generators {
     } yield AuthCookies(uniFiSes, csrfToken)
   }
 
-  implicit val siteIdGen: Gen[SiteId] = for {
+  implicit val siteId: Gen[SiteId] = for {
     id <- Gen.identifier
   } yield SiteId(id)
-  implicit val arbitrarySiteId: Arbitrary[SiteId] = Arbitrary(siteIdGen)
+  implicit val arbitrarySiteId: Arbitrary[SiteId] = Arbitrary(siteId)
 
-  implicit val siteNameGen: Gen[SiteName] = for {
+  implicit val siteName: Gen[SiteName] = for {
     id <- Gen.identifier
   } yield SiteName(id)
-  implicit val arbitrarySiteName: Arbitrary[SiteName] = Arbitrary(siteNameGen)
+  implicit val arbitrarySiteName: Arbitrary[SiteName] = Arbitrary(siteName)
 
-  val networkIdGen: Gen[NetworkId] = for {
-    id <- Gen.identifier
-  } yield NetworkId(id)
-  implicit val arbitraryNetworkId: Arbitrary[NetworkId] = Arbitrary(networkIdGen)
-
-  implicit val sitesDetailsSiteGen: Gen[Site] = for {
-    id <- siteIdGen
-    name <- siteNameGen
+  implicit val sitesDetailsSite: Gen[Site] = for {
+    id <- siteId
+    name <- siteName
     description <- Gen.identifier
     role <- Gen.identifier
-    hiddenId <- Gen.option(Gen.identifier)
-    noDelete <- Gen.option(Gen.oneOf(List(true, false)))
-  } yield Site(id, name, description, role, hiddenId, noDelete)
-  implicit val arbitrarySitesDetailsSite: Arbitrary[Site] = Arbitrary(sitesDetailsSiteGen)
+    hiddenId <- hiddenId
+    delete <- noDelete
+  } yield Site(id, name, description, role, hiddenId, delete)
+  implicit val arbitrarySitesDetailsSite: Arbitrary[Site] = Arbitrary(sitesDetailsSite)
 
   implicit def arbitraryUniFiResponse[T](implicit tGen: Gen[T]): Arbitrary[UniFiResponse[List[T]]] = Arbitrary {
     for {
@@ -84,8 +82,33 @@ object Generators {
     )
   }
 
-  implicit val networkGen: Gen[Network] = for {
-    id <- networkIdGen
-  } yield Network(id)
-  implicit val arbitraryNetwork: Arbitrary[Network] = Arbitrary(networkGen)
+  val networkId: Gen[NetworkId] = for {
+    id <- Gen.identifier
+  } yield NetworkId(id)
+  implicit val arbitraryNetworkId: Arbitrary[NetworkId] = Arbitrary(networkId)
+
+  implicit val networkName: Gen[NetworkName] = for {
+    id <- Gen.identifier
+  } yield NetworkName(id)
+  implicit val arbitraryNetworkName: Arbitrary[NetworkName] = Arbitrary(networkName)
+
+  implicit val defaultNetwork: Gen[LocalNetwork] = for {
+    id <- networkId
+    name <- networkName
+  } yield LocalNetwork(id, name, None, Some("LAN"), Some(true))
+
+  implicit val lan: Gen[LocalNetwork] = for {
+    id <- networkId
+    name <- networkName
+    vlan <- Gen.posNum[Short]
+  } yield LocalNetwork(id, name, Some(VLan(vlan)), None, None)
+
+  implicit val wan: Gen[WideAreaNetwork] = for {
+    id <- networkId
+    name <- networkName
+    hiddenId <- Gen.oneOf("WAN", "WAN2")
+    delete <- noDelete
+  } yield WideAreaNetwork(id, name, Some(hiddenId), delete)
+
+  implicit val arbitraryNetwork: Arbitrary[Network] = Arbitrary(Gen.oneOf(defaultNetwork, lan, wan))
 }
