@@ -2,7 +2,7 @@
   "_id": "6c5990c940b44f96ac14879bfad490af",
   "name": "IoT",
   "vlan": 20,
-  "ip_subnet": "192.168.20.1/22",
+  "ip_subnet": "192.168.20.1/23",
   "dhcpd_wpad_url": "",
   "dhcp_relay_enabled": false,
   "dhcpd_boot_enabled": false,
@@ -30,6 +30,6 @@
   "lte_lan_enabled": false,
   "purpose": "corporate",
   "dhcpd_start": "192.168.20.16",
-  "dhcpd_stop": "192.168.23.254",
+  "dhcpd_stop": "192.168.21.254",
   "site_id": "6c5990c940b44f96ac14879bfad490af"
 }

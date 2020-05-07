@@ -11,4 +11,3 @@ object NetworkSpec extends Properties("Network JSON") {
     (network: Network) => network.asJson.as[Network] == Right(network)
   }
 }
-

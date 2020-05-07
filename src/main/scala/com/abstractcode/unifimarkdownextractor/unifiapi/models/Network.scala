@@ -1,6 +1,7 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.CidrV4._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Network._
 import io.circe.Decoder.Result
 import io.circe.syntax._
@@ -12,6 +13,7 @@ case class LocalNetwork(
   id: NetworkId,
   name: NetworkName,
   vlan: Option[VLan],
+  ipSubnet: CidrV4,
   hiddenId: Option[String],
   noDelete: Option[Boolean]
 ) extends Network
@@ -42,11 +44,12 @@ object Network {
       ("attr_hidden_id", hiddenId.asJson),
       ("attr_no_delete", noDelete.asJson)
     )
-    case LocalNetwork(id, name, vlan, hiddenId, noDelete) => Json.obj(
+    case LocalNetwork(id, name, vlan, ipSubnet, hiddenId, noDelete) => Json.obj(
       ("_id", id.asJson),
       ("name", name.asJson),
       ("vlan_enabled", vlan.isDefined.asJson),
       ("vlan", vlan.map(_.id.asJson).getOrElse(Json.fromString(""))),
+      ("ip_subnet", ipSubnet.asJson),
       ("attr_hidden_id", hiddenId.asJson),
       ("attr_no_delete", noDelete.asJson)
     )
@@ -66,9 +69,10 @@ object Network {
         id <- c.downField("_id").as[NetworkId]
         name <- c.downField("name").as[NetworkName]
         vlan <- extractVLan(c)
+        ipSubnet <- c.downField("ip_subnet").as[CidrV4]
         hiddenId <- c.downField("attr_hidden_id").as[Option[String]]
         noDelete <- c.downField("attr_no_delete").as[Option[Boolean]]
-      } yield LocalNetwork(id, name, vlan, hiddenId, noDelete)
+      } yield LocalNetwork(id, name, vlan, ipSubnet, hiddenId, noDelete)
     }
   } yield network
 

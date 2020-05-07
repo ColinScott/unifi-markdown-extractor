@@ -92,16 +92,32 @@ object Generators {
   } yield NetworkName(id)
   implicit val arbitraryNetworkName: Arbitrary[NetworkName] = Arbitrary(networkName)
 
+  implicit val ipAddressV4: Gen[IpAddressV4] = for {
+    a <- arbitrary[Byte]
+    b <- arbitrary[Byte]
+    c <- arbitrary[Byte]
+    d <- arbitrary[Byte]
+  } yield IpAddressV4(a, b, c, d)
+  implicit val arbitraryIpAddressV4: Arbitrary[IpAddressV4] = Arbitrary(ipAddressV4)
+
+  implicit val cidrV4: Gen[CidrV4] = for {
+    ip <- ipAddressV4
+    prefixLength <- Gen.choose[Byte]((one - 1).toByte, 32.toByte)
+  } yield CidrV4(ip, prefixLength)
+  implicit val arbitraryCidrV4: Arbitrary[CidrV4] = Arbitrary(cidrV4)
+
   implicit val defaultNetwork: Gen[LocalNetwork] = for {
     id <- networkId
     name <- networkName
-  } yield LocalNetwork(id, name, None, Some("LAN"), Some(true))
+    ipSubnet <- cidrV4
+  } yield LocalNetwork(id, name, None, ipSubnet, Some("LAN"), Some(true))
 
   implicit val lan: Gen[LocalNetwork] = for {
     id <- networkId
     name <- networkName
     vlan <- Gen.posNum[Short]
-  } yield LocalNetwork(id, name, Some(VLan(vlan)), None, None)
+    ipSubnet <- cidrV4
+  } yield LocalNetwork(id, name, Some(VLan(vlan)), ipSubnet, None, None)
 
   implicit val wan: Gen[WideAreaNetwork] = for {
     id <- networkId
@@ -111,18 +127,4 @@ object Generators {
   } yield WideAreaNetwork(id, name, Some(hiddenId), delete)
 
   implicit val arbitraryNetwork: Arbitrary[Network] = Arbitrary(Gen.oneOf(defaultNetwork, lan, wan))
-
-  implicit val ipAddressV4: Gen[IpAddressV4] = for {
-    a <- arbitrary[Byte]
-    b <- arbitrary[Byte]
-    c <- arbitrary[Byte]
-    d <- arbitrary[Byte]
-  } yield IpAddressV4(a, b, c, d)
-  implicit val arbitraryIpAddressV4: Arbitrary[IpAddressV4] = Arbitrary(ipAddressV4)
-
-  implicit val ipRangeV4: Gen[IpRangeV4] = for {
-    ip <- ipAddressV4
-    prefixLength <- Gen.choose[Byte]((one - 1).toByte, 32.toByte)
-  } yield IpRangeV4(ip, prefixLength)
-  implicit val arbitraryIpRangeV4: Arbitrary[IpRangeV4] = Arbitrary(ipRangeV4)
 }

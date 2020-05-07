@@ -23,6 +23,7 @@ class NetworkKnownDetailsSpec extends Specification {
       id = NetworkId("3a919fc9a3a049b388d4e871f68a36b7"),
       name = NetworkName("LAN"),
       vlan = None,
+      ipSubnet = CidrV4(IpAddressV4(192.toByte, 168.toByte, 1.toByte, 1.toByte), 22),
       hiddenId = Some("LAN"),
       noDelete = Some(true)
     ))
@@ -35,6 +36,7 @@ class NetworkKnownDetailsSpec extends Specification {
       id = NetworkId("6c5990c940b44f96ac14879bfad490af"),
       name = NetworkName("IoT"),
       vlan = Some(VLan(20)),
+      ipSubnet = CidrV4(IpAddressV4(192.toByte, 168.toByte, 20.toByte, 1.toByte), 23),
       hiddenId = None,
       noDelete = None
     ))
