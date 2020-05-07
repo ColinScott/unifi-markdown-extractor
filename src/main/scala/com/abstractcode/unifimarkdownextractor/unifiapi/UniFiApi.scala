@@ -3,11 +3,11 @@ package com.abstractcode.unifimarkdownextractor.unifiapi
 import cats.ApplicativeError
 import cats.effect._
 import cats.implicits._
+import com.abstractcode.unifimarkdownextractor._
 import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
 import com.abstractcode.unifimarkdownextractor.infrastructure.AddAuthCookies._
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Network, SiteId, UniFiResponse}
-import com.abstractcode.unifimarkdownextractor._
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site.SiteName
+import com.abstractcode.unifimarkdownextractor.unifiapi.models._
 import fs2.Stream
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -21,7 +21,7 @@ trait UniFiApi[F[_]] {
   def logout(authCookies: AuthCookies): F[Unit]
 
   def sites(authCookies: AuthCookies): F[List[Site]]
-  def networks(authCookies: AuthCookies)(siteId: SiteId): F[List[Network]]
+  def networks(authCookies: AuthCookies)(name: SiteName): F[List[Network]]
 }
 
 class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
@@ -71,10 +71,10 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     )
   }
 
-  def networks(authCookies: AuthCookies)(siteId: SiteId): F[List[Network]] = {
+  def networks(authCookies: AuthCookies)(name: SiteName): F[List[Network]] = {
     val request: Request[F] = Request[F](
       method = Method.GET,
-      uri = appConfiguration.serverUri / "api" / "s" / siteId.id / "rest" / "networkconf"
+      uri = appConfiguration.serverUri / "api" / "s" / name.name / "rest" / "networkconf"
     )
 
     handleWithAuthentication(

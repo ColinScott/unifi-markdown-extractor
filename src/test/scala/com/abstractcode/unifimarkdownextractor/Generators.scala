@@ -1,8 +1,8 @@
 package com.abstractcode.unifimarkdownextractor
 
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, NetworkId, SiteId, UniFiResponse}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails._
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site.SiteName
+import com.abstractcode.unifimarkdownextractor.unifiapi.models._
 import org.http4s.{Status, Uri}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.freqTuple
@@ -47,19 +47,24 @@ object Generators {
   } yield SiteId(id)
   implicit val arbitrarySiteId: Arbitrary[SiteId] = Arbitrary(siteIdGen)
 
+  implicit val siteNameGen: Gen[SiteName] = for {
+    id <- Gen.identifier
+  } yield SiteName(id)
+  implicit val arbitrarySiteName: Arbitrary[SiteName] = Arbitrary(siteNameGen)
+
   val networkIdGen: Gen[NetworkId] = for {
     id <- Gen.identifier
   } yield NetworkId(id)
   implicit val arbitraryNetworkId: Arbitrary[NetworkId] = Arbitrary(networkIdGen)
 
   implicit val sitesDetailsSiteGen: Gen[Site] = for {
-    id <- Gen.identifier
-    name <- Gen.identifier
+    id <- siteIdGen
+    name <- siteNameGen
     description <- Gen.identifier
     role <- Gen.identifier
     hiddenId <- Gen.option(Gen.identifier)
     noDelete <- Gen.option(Gen.oneOf(List(true, false)))
-  } yield Site(SiteId(id), name, description, role, hiddenId, noDelete)
+  } yield Site(id, name, description, role, hiddenId, noDelete)
   implicit val arbitrarySitesDetailsSite: Arbitrary[Site] = Arbitrary(sitesDetailsSiteGen)
 
   implicit def arbitraryUniFiResponse[T](implicit tGen: Gen[T]): Arbitrary[UniFiResponse[List[T]]] = Arbitrary {
@@ -78,4 +83,9 @@ object Generators {
       UpgradeRequired
     )
   }
+
+  implicit val networkGen: Gen[Network] = for {
+    id <- networkIdGen
+  } yield Network(id)
+  implicit val arbitraryNetwork: Arbitrary[Network] = Arbitrary(networkGen)
 }

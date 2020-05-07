@@ -6,8 +6,10 @@ import java.security.cert.X509Certificate
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect._
+import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, ParseError}
-import com.abstractcode.unifimarkdownextractor.unifiapi.HttpUniFiApi
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Network, Site}
+import com.abstractcode.unifimarkdownextractor.unifiapi.{HttpUniFiApi, UniFiApi}
 import javax.net.ssl.{SSLContext, X509TrustManager}
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -22,9 +24,25 @@ object Main extends IOApp {
       _ <- IO(println(authCookies))
       sites <- uniFiApi.sites(authCookies)
       _ <- IO(println(sites))
+      _ <- showNetworks(uniFiApi, authCookies)(sites)
       _ <- uniFiApi.logout(authCookies)
     } yield ExitCode.Success
   }
+
+  def showNetworks(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] = {
+    for {
+      networksList <- sites.traverse(s => uniFiApi.networks(authCookies)(s.name))
+      _ <- networksList.traverse(l => IO(println(l)))
+
+    } yield ()
+  }
+
+  def showNetworkListList(networksList: List[List[Network]]): IO[Unit] = for {
+    networks <- IO.pure(networksList)
+    _ <- IO(println(networks))
+  } yield ()
+
+  def showNetworkList(networks: List[Network]): IO[Unit] = IO(println(networks))
 
   def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors))
 

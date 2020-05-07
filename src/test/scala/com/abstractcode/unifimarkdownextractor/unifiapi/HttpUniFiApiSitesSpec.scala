@@ -4,8 +4,8 @@ import cats.effect.IO
 import com.abstractcode.unifimarkdownextractor.Fixture
 import com.abstractcode.unifimarkdownextractor.Generators._
 import com.abstractcode.unifimarkdownextractor.unifiapi.CommonChecks._
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails._
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, UniFiResponse}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site._
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Site, UniFiResponse}
 import io.circe.Json
 import io.circe.syntax._
 import org.http4s.circe._
