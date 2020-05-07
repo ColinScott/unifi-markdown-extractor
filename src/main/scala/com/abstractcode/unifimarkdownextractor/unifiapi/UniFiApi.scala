@@ -55,7 +55,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
       uri = appConfiguration.serverUri / "api" / "logout"
     )
 
-    handleWithAuthentication(request, authCookies, _ => Sync[F].pure(()))
+    handleWithAuthentication(request, authCookies, _.as[UniFiResponse[Unit]])
   }
 
   def sites(authCookies: AuthCookies): F[List[Site]] = {
@@ -67,7 +67,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     handleWithAuthentication(
       request,
       authCookies,
-      response => response.as[UniFiResponse[List[Site]]].map(_.data)
+      _.as[UniFiResponse[List[Site]]]
     )
   }
 
@@ -80,18 +80,18 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     handleWithAuthentication(
       request,
       authCookies,
-      response => response.as[UniFiResponse[List[Network]]].map(_.data)
+      _.as[UniFiResponse[List[Network]]]
     )
   }
 
   def handleWithAuthentication[R](
     request: Request[F],
     authCookies: AuthCookies,
-    success: Response[F] => F[R]
+    success: Response[F] => F[UniFiResponse[R]]
   ): F[R] = {
     client.run(request.addAuthCookies(authCookies)).use { response =>
       response.status.responseClass match {
-        case Successful => success(response).handleErrorWith(_ => monadError.raiseError(InvalidResponse))
+        case Successful => success(response).map(_.data).handleErrorWith(_ => monadError.raiseError(InvalidResponse))
         case ClientError if response.status.code == 401 => monadError.raiseError[R](TokenUnauthorised)
         case _ => monadError.raiseError[R](UniFiError(response.status))
       }
