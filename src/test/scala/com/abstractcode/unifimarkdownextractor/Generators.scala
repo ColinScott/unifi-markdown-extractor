@@ -111,4 +111,18 @@ object Generators {
   } yield WideAreaNetwork(id, name, Some(hiddenId), delete)
 
   implicit val arbitraryNetwork: Arbitrary[Network] = Arbitrary(Gen.oneOf(defaultNetwork, lan, wan))
+
+  implicit val ipAddressV4: Gen[IpAddressV4] = for {
+    a <- arbitrary[Byte]
+    b <- arbitrary[Byte]
+    c <- arbitrary[Byte]
+    d <- arbitrary[Byte]
+  } yield IpAddressV4(a, b, c, d)
+  implicit val arbitraryIpAddressV4: Arbitrary[IpAddressV4] = Arbitrary(ipAddressV4)
+
+  implicit val ipRangeV4: Gen[IpRangeV4] = for {
+    ip <- ipAddressV4
+    prefixLength <- Gen.choose[Byte]((one - 1).toByte, 32.toByte)
+  } yield IpRangeV4(ip, prefixLength)
+  implicit val arbitraryIpRangeV4: Arbitrary[IpRangeV4] = Arbitrary(ipRangeV4)
 }
