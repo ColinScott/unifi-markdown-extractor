@@ -1,11 +1,7 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
-import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
-
-case class SitesDetails(data: List[Site])
 
 object SitesDetails {
   case class Site(
@@ -34,7 +30,4 @@ object SitesDetails {
     "attr_hidden_id",
     "attr_no_delete"
   )(Site.apply)
-
-  implicit val encodeSitesDetails: Encoder[SitesDetails] = deriveEncoder
-  implicit val decodeSitesDetails: Decoder[SitesDetails] = deriveDecoder
 }

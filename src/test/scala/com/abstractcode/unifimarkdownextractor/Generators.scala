@@ -1,8 +1,8 @@
 package com.abstractcode.unifimarkdownextractor
 
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SiteId, SitesDetails}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, NetworkId, SiteId, UniFiResponse}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails._
 import org.http4s.{Status, Uri}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.freqTuple
@@ -15,14 +15,14 @@ object Generators {
   val nonEmptyOrWhitespaceString: Gen[String] = arbitrary[String].suchThat(!_.trim.isEmpty)
   val whitespaceString: Gen[String] = Gen.chooseNum(one - 1, 32).map(" " * _)
 
-  val uriGen: Gen[Uri] = for {
+  implicit val uriGen: Gen[Uri] = for {
     protocol <- Gen.frequency(List((5, "http://"), (10, "https://")).map(freqTuple): _*)
     uri <- Gen.identifier
     port <- Gen.chooseNum[Int](minT = 1, maxT = 65535)
   } yield Uri.unsafeFromString(s"$protocol$uri:$port")
   implicit val arbitraryUri: Arbitrary[Uri] = Arbitrary(uriGen)
 
-  val credentialsGen: Gen[Credentials] = for {
+  implicit val credentialsGen: Gen[Credentials] = for {
     username <- nonEmptyOrWhitespaceString
     password <- nonEmptyOrWhitespaceString
   } yield Credentials(username, password)
@@ -42,12 +42,17 @@ object Generators {
     } yield AuthCookies(uniFiSes, csrfToken)
   }
 
-  val siteIdGen: Gen[SiteId] = for {
+  implicit val siteIdGen: Gen[SiteId] = for {
     id <- Gen.identifier
   } yield SiteId(id)
   implicit val arbitrarySiteId: Arbitrary[SiteId] = Arbitrary(siteIdGen)
 
-  val sitesDetailsSiteGen: Gen[Site] = for {
+  val networkIdGen: Gen[NetworkId] = for {
+    id <- Gen.identifier
+  } yield NetworkId(id)
+  implicit val arbitraryNetworkId: Arbitrary[NetworkId] = Arbitrary(networkIdGen)
+
+  implicit val sitesDetailsSiteGen: Gen[Site] = for {
     id <- Gen.identifier
     name <- Gen.identifier
     description <- Gen.identifier
@@ -57,10 +62,10 @@ object Generators {
   } yield Site(SiteId(id), name, description, role, hiddenId, noDelete)
   implicit val arbitrarySitesDetailsSite: Arbitrary[Site] = Arbitrary(sitesDetailsSiteGen)
 
-  implicit val arbitrarySitesDetails: Arbitrary[SitesDetails] = Arbitrary {
+  implicit def arbitraryUniFiResponse[T](implicit tGen: Gen[T]): Arbitrary[UniFiResponse[List[T]]] = Arbitrary {
     for {
-      sites <- Gen.listOf(sitesDetailsSiteGen)
-    } yield SitesDetails(sites)
+      t <- Gen.listOf(tGen)
+    } yield UniFiResponse(t)
   }
 
   implicit val arbitraryStatus: Arbitrary[Status] = Arbitrary {

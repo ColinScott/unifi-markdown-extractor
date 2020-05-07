@@ -4,7 +4,8 @@ import cats.effect.IO
 import com.abstractcode.unifimarkdownextractor.Fixture
 import com.abstractcode.unifimarkdownextractor.Generators._
 import com.abstractcode.unifimarkdownextractor.unifiapi.CommonChecks._
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails._
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, UniFiResponse}
 import io.circe.Json
 import io.circe.syntax._
 import org.http4s.circe._
@@ -18,14 +19,14 @@ import org.scalacheck.Properties
 object HttpUniFiApiSitesSpec extends Properties("HttpUniFiApi sites") {
 
   property("get sites") = forAll {
-    (sitesDetails: SitesDetails) => {
+    (sites: UniFiResponse[List[Site]]) => {
       val mockServer = HttpRoutes.of[IO] {
-        case GET -> Root / "api" / "self" / "sites" => Ok(sitesDetails.asJson)
+        case GET -> Root / "api" / "self" / "sites" => Ok(sites.asJson)
       }.orNotFound
 
       val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
 
-      httpUniFiApp.sites(Fixture.fixedAuthCookies).unsafeRunSync() == sitesDetails.data
+      httpUniFiApp.sites(Fixture.fixedAuthCookies).unsafeRunSync() == sites.data
     }
   }
 

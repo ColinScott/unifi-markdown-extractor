@@ -6,7 +6,7 @@ import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
 import com.abstractcode.unifimarkdownextractor.infrastructure.AddAuthCookies._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.SitesDetails.Site
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, SitesDetails}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Network, SiteId, UniFiResponse}
 import com.abstractcode.unifimarkdownextractor._
 import fs2.Stream
 import io.circe.generic.auto._
@@ -18,8 +18,10 @@ import org.http4s.{Method, Request, Response, ResponseCookie}
 
 trait UniFiApi[F[_]] {
   def authenticate(): F[AuthCookies]
-  def sites(authCookies: AuthCookies): F[List[Site]]
   def logout(authCookies: AuthCookies): F[Unit]
+
+  def sites(authCookies: AuthCookies): F[List[Site]]
+  def networks(authCookies: AuthCookies)(siteId: SiteId): F[List[Network]]
 }
 
 class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
@@ -47,6 +49,15 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     }
   }
 
+  def logout(authCookies: AuthCookies): F[Unit] = {
+    val request: Request[F] = Request[F](
+      method = Method.POST,
+      uri = appConfiguration.serverUri / "api" / "logout"
+    )
+
+    handleWithAuthentication(request, authCookies, _ => Sync[F].pure(()))
+  }
+
   def sites(authCookies: AuthCookies): F[List[Site]] = {
     val request: Request[F] = Request[F](
       method = Method.GET,
@@ -56,17 +67,21 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
     handleWithAuthentication(
       request,
       authCookies,
-      response => response.as[SitesDetails].map(_.data)
+      response => response.as[UniFiResponse[List[Site]]].map(_.data)
     )
   }
 
-  def logout(authCookies: AuthCookies): F[Unit] = {
+  def networks(authCookies: AuthCookies)(siteId: SiteId): F[List[Network]] = {
     val request: Request[F] = Request[F](
-      method = Method.POST,
-      uri = appConfiguration.serverUri / "api" / "logout"
+      method = Method.GET,
+      uri = appConfiguration.serverUri / "api" / "s" / siteId.id / "rest" / "networkconf"
     )
 
-    handleWithAuthentication(request, authCookies, _ => Sync[F].pure(()))
+    handleWithAuthentication(
+      request,
+      authCookies,
+      response => response.as[UniFiResponse[List[Network]]].map(_.data)
+    )
   }
 
   def handleWithAuthentication[R](
