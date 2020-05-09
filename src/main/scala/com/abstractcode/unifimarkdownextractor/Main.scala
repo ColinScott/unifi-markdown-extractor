@@ -1,5 +1,6 @@
 package com.abstractcode.unifimarkdownextractor
 
+import java.nio.file.{FileSystems, Files}
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 
@@ -7,9 +8,9 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect._
 import cats.implicits._
-import com.abstractcode.unifimarkdownextractor.MarkdownTableConverter.Column
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, ParseError}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, LocalNetwork, Network, Site}
+import com.abstractcode.unifimarkdownextractor.exporter.FileSiteExporter
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Site}
 import com.abstractcode.unifimarkdownextractor.unifiapi.{HttpUniFiApi, UniFiApi}
 import javax.net.ssl.{SSLContext, X509TrustManager}
 import org.http4s.client.Client
@@ -25,42 +26,22 @@ object Main extends IOApp {
       _ <- IO(println(authCookies))
       sites <- uniFiApi.sites(authCookies)
       _ <- IO(println(sites))
-      _ <- showNetworks(uniFiApi, authCookies)(sites)
+      _ <- exportSites(uniFiApi, authCookies)(sites)
       _ <- uniFiApi.logout(authCookies)
     } yield ExitCode.Success
   }
 
-  def showNetworks(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] = {
+  def exportSite(site: Site, uniFiApi: UniFiApi[IO], authCookies: AuthCookies): IO[Unit] = {
+    val basePath = FileSystems.getDefault.getPath("/tmp", site.name.name)
+
     for {
-      networksList <- sites.traverse(s => uniFiApi.networks(authCookies)(s.name))
-      _ <- networksList.traverse(l => networksToTable(l))
+      _ <- IO(Files.createDirectory(basePath))
+      _ <- new FileSiteExporter[IO](basePath, uniFiApi, authCookies).export(site)
     } yield ()
   }
 
-  def networksToTable(networks: List[Network]): IO[Unit] = {
-    val localNetworks: List[LocalNetwork] = networks
-      .flatMap(_ match { case l: LocalNetwork => Some(l) case _ => None })
-      .sortBy(_.vlan.map(_.id).getOrElse(1: Short))
-
-    val converter: NonEmptyList[LocalNetwork] => String = MarkdownTableConverter.convert[LocalNetwork](
-      NonEmptyList.of(
-        Column[LocalNetwork]("Network", _.name.name),
-        Column[LocalNetwork]("VLAN", _.vlan.map(_.id.toString).getOrElse("1")),
-        Column[LocalNetwork]("Network", _.ipSubnet.toString)
-      )
-    )
-
-   NonEmptyList.fromList(localNetworks)
-      .map(n => IO(println(converter(n))))
-      .getOrElse(IO.pure(()))
-  }
-
-  def showNetworkListList(networksList: List[List[Network]]): IO[Unit] = for {
-    networks <- IO.pure(networksList)
-    _ <- IO(println(networks))
-  } yield ()
-
-  def showNetworkList(networks: List[Network]): IO[Unit] = IO(println(networks))
+  def exportSites(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] =
+    sites.traverse(site => exportSite(site, uniFiApi, authCookies)).map(_ => ())
 
   def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors))
 

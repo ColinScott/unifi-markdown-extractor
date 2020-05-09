@@ -1,5 +1,7 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
+import cats.implicits._
+import cats.Show
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.CidrV4._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Network._
@@ -33,6 +35,9 @@ object Network {
   implicit val decodeSiteName: Decoder[NetworkName] = (c: HCursor) => c.as[String].map(NetworkName)
 
   case class VLan(id: Short)
+
+  implicit val showVLan: Show[VLan] = Show.show(s => s.id.toString)
+  implicit val showOptionalVLan: Show[Option[VLan]] = Show.show(s => s.map(_.show).getOrElse("1"))
 
   implicit val encodeVLan: Encoder[VLan] = (a: VLan) => Json.fromInt(a.id.toInt)
   implicit val decodeVLan: Decoder[VLan] = (c: HCursor) => c.as[Short].map(VLan)
