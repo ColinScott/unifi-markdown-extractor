@@ -3,7 +3,7 @@ package com.abstractcode.unifimarkdownextractor.unifiapi
 import cats.ApplicativeError
 import cats.effect._
 import cats.implicits._
-import com.abstractcode.unifimarkdownextractor._
+import com.abstractcode.unifimarkdownextractor.Error.{AuthenticationFailure, InvalidAuthenticationResponse, InvalidResponse, TokenUnauthorised, UniFiError}
 import com.abstractcode.unifimarkdownextractor.configuration.ControllerConfiguration
 import com.abstractcode.unifimarkdownextractor.infrastructure.AddAuthCookies._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site.SiteName

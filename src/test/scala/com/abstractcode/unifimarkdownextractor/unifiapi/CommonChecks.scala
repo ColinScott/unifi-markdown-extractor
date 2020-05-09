@@ -2,7 +2,8 @@ package com.abstractcode.unifimarkdownextractor.unifiapi
 
 import cats.data.NonEmptyList
 import cats.effect.IO
-import com.abstractcode.unifimarkdownextractor.{Fixture, InvalidResponse, TokenUnauthorised, UniFiError}
+import com.abstractcode.unifimarkdownextractor.Error.{InvalidResponse, TokenUnauthorised, UniFiError}
+import com.abstractcode.unifimarkdownextractor.Fixture
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.AuthCookies
 import org.http4s.client.Client
 import org.http4s.dsl.io._

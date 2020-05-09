@@ -1,10 +1,11 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi
 
 import cats.effect.IO
+import com.abstractcode.unifimarkdownextractor.Error.{AuthenticationFailure, InvalidAuthenticationResponse}
 import com.abstractcode.unifimarkdownextractor.Generators._
 import com.abstractcode.unifimarkdownextractor.configuration.{ControllerConfiguration, Credentials}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.AuthCookies
-import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, Fixture, InvalidAuthenticationResponse}
+import com.abstractcode.unifimarkdownextractor.Fixture
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.circe.CirceEntityDecoder._

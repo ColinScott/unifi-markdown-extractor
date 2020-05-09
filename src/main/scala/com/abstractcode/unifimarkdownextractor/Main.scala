@@ -1,6 +1,6 @@
 package com.abstractcode.unifimarkdownextractor
 
-import java.nio.file.{FileSystems, Files}
+import java.nio.file.FileSystems
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 
@@ -34,10 +34,7 @@ object Main extends IOApp {
   def exportSite(site: Site, uniFiApi: UniFiApi[IO], authCookies: AuthCookies): IO[Unit] = {
     val basePath = FileSystems.getDefault.getPath("/tmp", site.name.name)
 
-    for {
-      _ <- IO(Files.createDirectory(basePath))
-      _ <- new FileSiteExporter[IO](basePath, uniFiApi, authCookies).export(site)
-    } yield ()
+    new FileSiteExporter[IO](basePath, uniFiApi, authCookies).export(site)
   }
 
   def exportSites(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] =
