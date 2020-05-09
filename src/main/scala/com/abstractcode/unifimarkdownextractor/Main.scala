@@ -41,7 +41,7 @@ object Main extends IOApp {
   }
 
   def exportSites(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] =
-    sites.traverse(site => exportSite(site, uniFiApi, authCookies)).map(_ => ())
+    sites.traverse_(site => exportSite(site, uniFiApi, authCookies))
 
   def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors))
 
