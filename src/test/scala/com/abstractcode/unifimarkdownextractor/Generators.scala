@@ -1,14 +1,14 @@
 package com.abstractcode.unifimarkdownextractor
 
-import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
+import com.abstractcode.unifimarkdownextractor.configuration.{ControllerConfiguration, Credentials}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Network.{NetworkName, VLan}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site.SiteName
 import com.abstractcode.unifimarkdownextractor.unifiapi.models._
+import org.http4s.Status._
 import org.http4s.{Status, Uri}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck.{Arbitrary, Gen}
-import org.http4s.Status._
 
 object Generators {
   val one = 1 // Work around Scala 2.13.2 bug
@@ -31,11 +31,11 @@ object Generators {
   } yield Credentials(username, password)
   implicit val arbitraryCredentials: Arbitrary[Credentials] = Arbitrary(credentials)
 
-  implicit val arbitraryAppConfiguration: Arbitrary[AppConfiguration] = Arbitrary {
+  implicit val arbitraryControllerConfiguration: Arbitrary[ControllerConfiguration] = Arbitrary {
     for {
       uri <- uri
       credentials <- credentials
-    } yield AppConfiguration(uri, credentials)
+    } yield ControllerConfiguration(uri, credentials)
   }
 
   implicit val arbitraryAuthCookies: Arbitrary[AuthCookies] = Arbitrary {

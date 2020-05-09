@@ -2,7 +2,7 @@ package com.abstractcode.unifimarkdownextractor.unifiapi
 
 import cats.effect.IO
 import com.abstractcode.unifimarkdownextractor.Generators._
-import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, Credentials}
+import com.abstractcode.unifimarkdownextractor.configuration.{ControllerConfiguration, Credentials}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.AuthCookies
 import com.abstractcode.unifimarkdownextractor.{AuthenticationFailure, Fixture, InvalidAuthenticationResponse}
 import io.circe.generic.auto._
@@ -17,12 +17,12 @@ import org.scalacheck.Properties
 object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentication") {
 
   property("successful authentication") = forAll {
-    (appConfiguration: AppConfiguration, authCookies: AuthCookies) => {
+    (configuration: ControllerConfiguration, authCookies: AuthCookies) => {
       val mockServer = HttpRoutes.of[IO] {
         case req@POST -> Root / "api" / "login" =>
           for {
             credentials <- req.as[Credentials]
-            response <- if (credentials == appConfiguration.credentials)
+            response <- if (credentials == configuration.credentials)
               IO.pure(
                 Response[IO](status = Status.Ok)
                   .addCookie("unifises", authCookies.uniFiSes)
@@ -33,7 +33,7 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           } yield response
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer),configuration)
 
       val receivedCookies = httpUniFiApp.authenticate().unsafeRunSync()
 
@@ -42,19 +42,19 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
   }
 
   property("invalid credentials") = forAll {
-    (appConfiguration: AppConfiguration) => {
+    (configuration: ControllerConfiguration) => {
       val mockServer = HttpRoutes.of[IO] {
         case req@POST -> Root / "api" / "login" =>
           for {
             credentials <- req.as[Credentials]
-            response <- if (credentials == appConfiguration.credentials)
+            response <- if (credentials == configuration.credentials)
               BadRequest()
             else
               InternalServerError()
           } yield response
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), appConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), configuration)
 
       val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 
@@ -74,7 +74,7 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           )
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
       val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 
@@ -94,7 +94,7 @@ object HttpUniFiApiAuthenticationSpec extends Properties("HttpUniFiApi authentic
           )
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
       val response = httpUniFiApp.authenticate().attempt.unsafeRunSync()
 

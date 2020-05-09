@@ -22,7 +22,7 @@ object HttpUniFiApiLogoutSpec extends Properties("HttpUniFiApi authentication") 
         case POST -> Root / "api" / "logout" => Ok(Json.obj("data" -> Json.arr()))
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
       httpUniFiApp.logout(authCookies).attempt.unsafeRunSync() == Right(())
     }

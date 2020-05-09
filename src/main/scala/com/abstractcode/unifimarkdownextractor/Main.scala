@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
   def process(appConfiguration: AppConfiguration, client: Client[IO]): IO[ExitCode] = {
-    val uniFiApi = new HttpUniFiApi[IO](client, appConfiguration)
+    val uniFiApi = new HttpUniFiApi[IO](client, appConfiguration.controller)
     for {
       authCookies <- uniFiApi.authenticate()
       _ <- IO(println(authCookies))

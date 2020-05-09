@@ -33,7 +33,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
         "PASSWORD" -> credentials.password
       )
 
-      val expected = AppConfiguration(uri, credentials).validNel
+      val expected = AppConfiguration(ControllerConfiguration(uri, credentials)).validNel
 
       AppConfiguration(env) == expected
     }

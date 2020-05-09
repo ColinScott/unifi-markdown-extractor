@@ -25,7 +25,7 @@ object CommonChecks {
           InternalServerError()
     }.orNotFound
 
-    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
     propBoolean(apiMethod(httpUniFiApp).attempt.unsafeRunSync().isRight)
   }
@@ -37,7 +37,7 @@ object CommonChecks {
       )
     }.orNotFound
 
-    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
     propBoolean(apiMethod(httpUniFiApp).attempt.unsafeRunSync() == Left(TokenUnauthorised))
   }
@@ -47,7 +47,7 @@ object CommonChecks {
       case _ => IO.pure(Response[IO](status = status))
     }.orNotFound
 
-    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
     propBoolean(apiMethod(httpUniFiApp).attempt.unsafeRunSync() == Left(UniFiError(status)))
   }
@@ -57,7 +57,7 @@ object CommonChecks {
       case _ => Ok(notJson)
     }.orNotFound
 
-    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+    val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
     propBoolean(apiMethod(httpUniFiApp).attempt.unsafeRunSync() == Left(InvalidResponse))
   }

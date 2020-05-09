@@ -4,7 +4,7 @@ import cats.ApplicativeError
 import cats.effect._
 import cats.implicits._
 import com.abstractcode.unifimarkdownextractor._
-import com.abstractcode.unifimarkdownextractor.configuration.AppConfiguration
+import com.abstractcode.unifimarkdownextractor.configuration.ControllerConfiguration
 import com.abstractcode.unifimarkdownextractor.infrastructure.AddAuthCookies._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site.SiteName
 import com.abstractcode.unifimarkdownextractor.unifiapi.models._
@@ -24,7 +24,7 @@ trait UniFiApi[F[_]] {
   def networks(authCookies: AuthCookies)(name: SiteName): F[List[Network]]
 }
 
-class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
+class HttpUniFiApi[F[_] : Sync](client: Client[F], configuration: ControllerConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
   def authenticate(): F[AuthCookies] = {
     def getCookieValue(cookies: List[ResponseCookie])(name: String): Option[String] = cookies.filter(_.name == name)
       .map(_.content)
@@ -32,8 +32,8 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
 
     val postRequest = Request[F](
       method = Method.POST,
-      uri = appConfiguration.serverUri / "api" / "login",
-      body = Stream.emits[F, Byte](appConfiguration.credentials.asJson.noSpaces.getBytes)
+      uri = configuration.serverUri / "api" / "login",
+      body = Stream.emits[F, Byte](configuration.credentials.asJson.noSpaces.getBytes)
     )
 
     client.run(postRequest).use { response =>
@@ -52,7 +52,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
   def logout(authCookies: AuthCookies): F[Unit] = {
     val request: Request[F] = Request[F](
       method = Method.POST,
-      uri = appConfiguration.serverUri / "api" / "logout"
+      uri = configuration.serverUri / "api" / "logout"
     )
 
     handleWithAuthentication(request, authCookies, _.as[UniFiResponse[Unit]])
@@ -61,7 +61,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
   def sites(authCookies: AuthCookies): F[List[Site]] = {
     val request: Request[F] = Request[F](
       method = Method.GET,
-      uri = appConfiguration.serverUri / "api" / "self" / "sites"
+      uri = configuration.serverUri / "api" / "self" / "sites"
     )
 
     handleWithAuthentication(
@@ -74,7 +74,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], appConfiguration: AppConfigur
   def networks(authCookies: AuthCookies)(name: SiteName): F[List[Network]] = {
     val request: Request[F] = Request[F](
       method = Method.GET,
-      uri = appConfiguration.serverUri / "api" / "s" / name.name / "rest" / "networkconf"
+      uri = configuration.serverUri / "api" / "s" / name.name / "rest" / "networkconf"
     )
 
     handleWithAuthentication(

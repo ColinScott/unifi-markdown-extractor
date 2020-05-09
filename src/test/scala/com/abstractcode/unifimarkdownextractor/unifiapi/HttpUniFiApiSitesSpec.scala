@@ -24,7 +24,7 @@ object HttpUniFiApiSitesSpec extends Properties("HttpUniFiApi sites") {
         case GET -> Root / "api" / "self" / "sites" => Ok(sites.asJson)
       }.orNotFound
 
-      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedAppConfiguration)
+      val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
       httpUniFiApp.sites(Fixture.fixedAuthCookies).unsafeRunSync() == sites.data
     }

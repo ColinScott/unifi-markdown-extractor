@@ -6,6 +6,10 @@ import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
 import org.http4s.Uri
 
 case class AppConfiguration(
+  controller: ControllerConfiguration
+)
+
+case class ControllerConfiguration(
   serverUri: Uri,
   credentials: Credentials
 )
@@ -21,10 +25,13 @@ object ParseError {
 }
 
 object AppConfiguration {
-  def apply(env: Map[String, String]): ValidatedNel[ParseError, AppConfiguration] = (
+  def apply(env: Map[String, String]): ValidatedNel[ParseError, AppConfiguration] =
+    getControllerConfiguration(env).map(AppConfiguration.apply)
+
+  def getControllerConfiguration(env: Map[String, String]): ValidatedNel[ParseError, ControllerConfiguration] = (
     getUri(env, "SERVER_URI"),
     getCredentials(env)
-    ).mapN(AppConfiguration.apply)
+    ).mapN(ControllerConfiguration.apply)
 
   def getUri(env: Map[String, String], key: String): ValidatedNel[ParseError, Uri] =
     env.get(key)
