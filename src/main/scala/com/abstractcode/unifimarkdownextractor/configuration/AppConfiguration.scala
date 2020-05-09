@@ -1,13 +1,13 @@
 package com.abstractcode.unifimarkdownextractor.configuration
 
+import java.nio.file.{Path, Paths}
+
 import cats.data.ValidatedNel
 import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
 import org.http4s.Uri
 
-case class AppConfiguration(
-  controller: ControllerConfiguration
-)
+case class AppConfiguration(controller: ControllerConfiguration, export: ExportConfiguration)
 
 case class ControllerConfiguration(
   serverUri: Uri,
@@ -24,9 +24,13 @@ object ParseError {
   case object InvalidFormat extends Reason
 }
 
+case class ExportConfiguration(basePath: Path)
+
 object AppConfiguration {
-  def apply(env: Map[String, String]): ValidatedNel[ParseError, AppConfiguration] =
-    getControllerConfiguration(env).map(AppConfiguration.apply)
+  def apply(env: Map[String, String]): ValidatedNel[ParseError, AppConfiguration] = (
+    getControllerConfiguration(env),
+    getExportConfiguration(env)
+    ).mapN(AppConfiguration.apply)
 
   def getControllerConfiguration(env: Map[String, String]): ValidatedNel[ParseError, ControllerConfiguration] = (
     getUri(env, "SERVER_URI"),
@@ -47,4 +51,6 @@ object AppConfiguration {
     getNonEmptyString(env, "PASSWORD")
     ).mapN(Credentials)
 
+  def getExportConfiguration(env: Map[String, String]): ValidatedNel[ParseError, ExportConfiguration] =
+    getNonEmptyString(env, "BASE_PATH").map(p => ExportConfiguration(Paths.get(p)))
 }

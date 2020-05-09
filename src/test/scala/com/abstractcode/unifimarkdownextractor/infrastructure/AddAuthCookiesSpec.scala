@@ -1,7 +1,7 @@
 package com.abstractcode.unifimarkdownextractor.infrastructure
 
 import cats.Id
-import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.infrastructure.AddAuthCookies._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.AuthCookies
 import org.http4s._

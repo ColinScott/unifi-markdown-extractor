@@ -1,6 +1,6 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
-import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.IpAddressV4._
 import io.circe.DecodingFailure
 import io.circe.syntax._

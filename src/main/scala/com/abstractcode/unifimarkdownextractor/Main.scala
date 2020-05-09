@@ -1,17 +1,14 @@
 package com.abstractcode.unifimarkdownextractor
 
-import java.nio.file.FileSystems
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect._
-import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, ParseError}
-import com.abstractcode.unifimarkdownextractor.exporter.FileSiteExporter
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Site}
-import com.abstractcode.unifimarkdownextractor.unifiapi.{HttpUniFiApi, UniFiApi}
+import com.abstractcode.unifimarkdownextractor.exporter.FileExporter
+import com.abstractcode.unifimarkdownextractor.unifiapi.HttpUniFiApi
 import javax.net.ssl.{SSLContext, X509TrustManager}
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -21,24 +18,13 @@ import scala.concurrent.ExecutionContext.global
 object Main extends IOApp {
   def process(appConfiguration: AppConfiguration, client: Client[IO]): IO[ExitCode] = {
     val uniFiApi = new HttpUniFiApi[IO](client, appConfiguration.controller)
+    val exporter = new FileExporter[IO](uniFiApi, appConfiguration.export)
     for {
       authCookies <- uniFiApi.authenticate()
-      _ <- IO(println(authCookies))
-      sites <- uniFiApi.sites(authCookies)
-      _ <- IO(println(sites))
-      _ <- exportSites(uniFiApi, authCookies)(sites)
+      _ <- exporter.export
       _ <- uniFiApi.logout(authCookies)
     } yield ExitCode.Success
   }
-
-  def exportSite(site: Site, uniFiApi: UniFiApi[IO], authCookies: AuthCookies): IO[Unit] = {
-    val basePath = FileSystems.getDefault.getPath("/tmp", site.name.name)
-
-    new FileSiteExporter[IO](basePath, uniFiApi, authCookies).export(site)
-  }
-
-  def exportSites(uniFiApi: UniFiApi[IO], authCookies: AuthCookies)(sites: List[Site]): IO[Unit] =
-    sites.traverse_(site => exportSite(site, uniFiApi, authCookies))
 
   def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors))
 
@@ -69,6 +55,4 @@ object Main extends IOApp {
       } yield exitCode
     }
   }
-
-
 }

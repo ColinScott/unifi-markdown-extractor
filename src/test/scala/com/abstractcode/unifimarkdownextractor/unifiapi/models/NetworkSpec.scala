@@ -1,7 +1,7 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
 import cats.implicits._
-import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Network._
 import io.circe.syntax._
 import org.scalacheck.Prop.{forAll, propBoolean}

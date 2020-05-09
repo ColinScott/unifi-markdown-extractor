@@ -1,6 +1,6 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
-import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site._
 import io.circe.syntax._
 import org.scalacheck.Prop.{forAll, propBoolean}

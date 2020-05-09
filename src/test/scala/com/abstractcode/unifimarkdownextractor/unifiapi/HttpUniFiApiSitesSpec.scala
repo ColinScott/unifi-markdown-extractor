@@ -1,8 +1,9 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi
 
 import cats.effect.IO
+import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.Fixture
-import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.Generators.site
 import com.abstractcode.unifimarkdownextractor.unifiapi.CommonChecks._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Site._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, Site, UniFiResponse}
@@ -17,7 +18,6 @@ import org.scalacheck.Prop.{forAll, propBoolean}
 import org.scalacheck.Properties
 
 object HttpUniFiApiSitesSpec extends Properties("HttpUniFiApi sites") {
-
   property("get sites") = forAll {
     (sites: UniFiResponse[List[Site]]) => {
       val mockServer = HttpRoutes.of[IO] {

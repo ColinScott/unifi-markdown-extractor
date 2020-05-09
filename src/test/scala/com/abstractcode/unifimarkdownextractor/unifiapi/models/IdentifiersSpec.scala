@@ -1,6 +1,6 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
-import com.abstractcode.unifimarkdownextractor.Generators._
+import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
 import io.circe.Json
 import io.circe.syntax._
