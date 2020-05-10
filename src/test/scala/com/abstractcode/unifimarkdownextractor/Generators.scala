@@ -88,6 +88,8 @@ object Generators {
     delete <- noDelete
   } yield WideAreaNetwork(id, name, Some(hiddenId), delete)
 
+  val network: Gen[Network] = Gen.oneOf(defaultNetwork, lan, wan)
+
   val path: Gen[Path] = for {
     count <- Gen.choose(1, 5)
     sections <- Gen.listOfN(count, Gen.alphaNumStr.filter(!_.isEmpty))
