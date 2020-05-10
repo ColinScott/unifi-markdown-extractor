@@ -4,7 +4,9 @@ import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 
-sealed trait FirewallGroup
+sealed trait FirewallGroup {
+  val name: String
+}
 
 object FirewallGroup {
   case class PortGroup(

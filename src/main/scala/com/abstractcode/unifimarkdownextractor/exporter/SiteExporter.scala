@@ -7,7 +7,7 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.ExportConfiguration
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, LocalNetwork, Site}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, FirewallGroup, LocalNetwork, Site}
 import com.abstractcode.unifimarkdownextractor.unifiapi.{MarkdownConversion, UniFiApi}
 
 trait SiteExporter[F[_]] {
@@ -23,10 +23,17 @@ class FileSiteExporter[F[_] : Monad : Sync](exportConfiguration: ExportConfigura
       .flatMap { case l: LocalNetwork => Some(l) case _ => None }
       .sortBy(_.vlan.map(_.id).getOrElse(1: Short))
     _ <- writeLocalNetworks(siteDirectory, localNetworks)
+    firewallGroups <- uniFiApi.firewallGroups(authCookies)(site.name)
+    _ <- writeFirewallGroups(siteDirectory, firewallGroups)
   } yield ()
 
   def writeLocalNetworks(siteDirectory: Path, localNetworks: List[LocalNetwork]): F[Unit] = NonEmptyList.fromList(localNetworks) match {
     case Some(ln) => FileActions.write[F](siteDirectory.resolve("networks.md"), MarkdownConversion.localNetworks(ln))
+    case None => Sync[F].pure(())
+  }
+
+  def writeFirewallGroups(siteDirectory: Path, firewallGroups: List[FirewallGroup]): F[Unit] = NonEmptyList.fromList(firewallGroups) match {
+    case Some(ln) => FileActions.write[F](siteDirectory.resolve("firewall-groups.md"), MarkdownConversion.firewallGroups(ln))
     case None => Sync[F].pure(())
   }
 }
