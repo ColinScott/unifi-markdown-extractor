@@ -122,4 +122,95 @@ object Generators {
   } yield UnknownFirewallGroup(id, name, siteId)
 
   val firewallGroup: Gen[FirewallGroup] = Gen.oneOf(portGroup, ipV4AddressSubnetGroup, unknownFirewallGroup)
+
+  val firewallRuleId: Gen[FirewallRuleId] = for {
+    id <- Gen.identifier
+  } yield FirewallRuleId(id)
+
+  val firewallRuleSourceAddressPortGroup: Gen[FirewallRule.SourceAddressPortGroup] = for {
+    count <- Gen.choose(one - 1, 2)
+    groups <- Gen.listOfN(count, firewallGroupId)
+    macAddress <- Gen.option(Gen.identifier)
+  } yield FirewallRule.SourceAddressPortGroup(groups, macAddress)
+
+  val firewallRuleSourceNetwork: Gen[FirewallRule.SourceNetwork] = for {
+    network <- networkId
+    networkType <- Gen.oneOf(FirewallRule.IPv4Subnet, FirewallRule.GatewayIPAddress)
+    macAddress <- Gen.option(Gen.identifier)
+  } yield FirewallRule.SourceNetwork(network, networkType, macAddress)
+
+  val firewallRuleSourceIPv4Address: Gen[FirewallRule.SourceIPv4Address] = for {
+    ip <- ipAddressV4
+    macAddress <- Gen.option(Gen.identifier)
+  } yield FirewallRule.SourceIPv4Address(ip, macAddress)
+
+  val firewallRuleSource: Gen[FirewallRule.Source] = Gen.oneOf(
+    firewallRuleSourceAddressPortGroup,
+    firewallRuleSourceNetwork,
+    firewallRuleSourceIPv4Address
+  )
+
+  val firewallRuleDestinationAddressPortGroup: Gen[FirewallRule.DestinationAddressPortGroup] = for {
+    count <- Gen.choose(one - 1, 2)
+    groups <- Gen.listOfN(count, firewallGroupId)
+  } yield FirewallRule.DestinationAddressPortGroup(groups)
+
+  val firewallRuleDestinationNetwork: Gen[FirewallRule.DestinationNetwork] = for {
+    network <-networkId
+    networkType <- Gen.oneOf(FirewallRule.IPv4Subnet, FirewallRule.GatewayIPAddress)
+  } yield FirewallRule.DestinationNetwork(network, networkType)
+
+  val firewallRuleDestinationIPv4Address: Gen[FirewallRule.DestinationIPv4Address] = for {
+    ip <- ipAddressV4
+  } yield FirewallRule.DestinationIPv4Address(ip)
+
+  val firewallRuleDestination: Gen[FirewallRule.Destination] = Gen.oneOf(
+    firewallRuleDestinationAddressPortGroup,
+    firewallRuleDestinationNetwork,
+    firewallRuleDestinationIPv4Address
+  )
+
+  val firewallRule: Gen[FirewallRule] = for {
+    id <- firewallRuleId
+    siteId <- siteId
+    name <- Gen.identifier
+    index <- Gen.choose(2000, 2999)
+    ruleSet <- Gen.oneOf(
+      FirewallRule.WAN,
+      FirewallRule.LAN,
+      FirewallRule.Guest,
+      FirewallRule.WANV6,
+      FirewallRule.LANV6,
+      FirewallRule.GuestV6
+    )
+    ruleSubset <- Gen.oneOf(FirewallRule.In, FirewallRule.Out, FirewallRule.Local)
+    action <- Gen.oneOf(FirewallRule.Accept, FirewallRule.Drop, FirewallRule.Reject)
+    source <- firewallRuleSource
+    destination <- firewallRuleDestination
+    enabled <- Gen.oneOf(true, false)
+    advancedOptions <- Gen.containerOf[Set, FirewallRule.AdvancedOptions](
+      Gen.oneOf(
+        FirewallRule.EnableLogging,
+        FirewallRule.MatchStateNew,
+        FirewallRule.MatchStateEstablished,
+        FirewallRule.MatchStateInvalid,
+        FirewallRule.MatchStateRelated
+      )
+    )
+    ipSecMatching <- Gen.oneOf(FirewallRule.DontMatchIpSec, FirewallRule.MatchInboundIpSec, FirewallRule.MatchInboundNonIpSec)
+  }
+    yield FirewallRule(
+      id,
+      siteId,
+      name,
+      index,
+      ruleSet,
+      ruleSubset,
+      action,
+      source,
+      destination,
+      enabled,
+      advancedOptions,
+      ipSecMatching
+    )
 }
