@@ -15,9 +15,11 @@ import org.http4s.dsl.io._
 import org.http4s.implicits._
 import org.http4s.{HttpRoutes, Status}
 import org.scalacheck.Prop.{forAll, propBoolean}
-import org.scalacheck.Properties
+import org.scalacheck.{Gen, Properties}
 
 object HttpUniFiApiSitesSpec extends Properties("HttpUniFiApi sites") {
+  implicit val validSite: Gen[Site] = site
+
   property("get sites") = forAll {
     (sites: UniFiResponse[List[Site]]) => {
       val mockServer = HttpRoutes.of[IO] {

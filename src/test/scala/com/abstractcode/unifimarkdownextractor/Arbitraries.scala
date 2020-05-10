@@ -63,4 +63,7 @@ object Arbitraries {
 
   implicit val arbitraryNetwork: Arbitrary[Network] = Arbitrary(Gen.oneOf(Generators.defaultNetwork, Generators.lan, Generators.wan))
   implicit val arbitraryPath: Arbitrary[Path] = Arbitrary(Generators.path)
+
+  implicit val arbitraryFirewallGroup: Arbitrary[FirewallGroup] = Arbitrary(Generators.firewallGroup)
+
 }

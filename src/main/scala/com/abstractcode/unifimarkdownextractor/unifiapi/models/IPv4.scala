@@ -1,7 +1,8 @@
 package com.abstractcode.unifimarkdownextractor.unifiapi.models
 
 import cats.implicits._
-import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
+import io.circe.syntax._
+import io.circe._
 
 sealed trait IPv4
 
@@ -20,7 +21,7 @@ object IpAddressV4 {
   })
 }
 
-case class CidrV4(networkAddress: IpAddressV4, prefixLength: Byte) {
+case class CidrV4(networkAddress: IpAddressV4, prefixLength: Byte) extends IPv4 {
   override def toString: String = s"$networkAddress/$prefixLength"
 }
 
@@ -39,4 +40,14 @@ object CidrV4 {
       case _ => Left(DecodingFailure("Couldn't separate into the correct number of elements for an IPv4 CIDR", Nil))
     }
   })
+}
+
+object IPv4 {
+  implicit val ipV4Encoder: Encoder[IPv4] = {
+    case ip: IpAddressV4 => ip.asJson
+    case cidr: CidrV4 => cidr.asJson
+  }
+  implicit val ipV4Decoder: Decoder[IPv4] = (c: HCursor) => {
+    c.as[String].flatMap(i => if (i.contains('/')) c.as[CidrV4] else c.as[IpAddressV4])
+  }
 }
