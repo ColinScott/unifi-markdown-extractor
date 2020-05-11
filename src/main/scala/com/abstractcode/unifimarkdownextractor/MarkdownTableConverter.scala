@@ -7,7 +7,12 @@ object MarkdownTableConverter {
 
   def convert[T](columns: NonEmptyList[Column[T]])(data: NonEmptyList[T]): String = {
     def convertSingle(item: T): String = {
-      columns.foldLeft("|")((b, column) => s"$b ${column.extractor(item).replace("|", "\\|")} |")
+      columns.foldLeft("|")((b, column) => {
+        val encodedItem = column.extractor(item)
+          .replace("|", "\\|")
+          .replace("\n", "<br/>")
+        s"$b $encodedItem |"
+      })
     }
 
     val header = columns.foldLeft("|")((b, column) =>s"$b ${column.title} |")

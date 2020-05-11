@@ -5,6 +5,7 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 
 sealed trait FirewallGroup {
+  val id: FirewallGroupId
   val name: String
 }
 

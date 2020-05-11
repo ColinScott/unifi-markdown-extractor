@@ -16,6 +16,7 @@ class MarkdownTableConverterSpec extends Specification {
             will convert multiple columns single data $multipleColumnsSingleData
             will convert multiple columns multiple data $multipleColumnsMultipleData
             will encode values $encodeValues
+            will convert newline to <br> $convertNewlineToHtmlBreak
       """
 
   def singleColumnSingleData: MatchResult[Any] = {
@@ -68,6 +69,7 @@ class MarkdownTableConverterSpec extends Specification {
 
     MarkdownTableConverter.convert(columns)(data) shouldEqual expected
   }
+
   def encodeValues: MatchResult[Any] = {
     val data = NonEmptyList.of(
       DataItem("test | test", 42, 4.5)
@@ -82,6 +84,24 @@ class MarkdownTableConverterSpec extends Specification {
       """| First |
         @|---|
         @| test \| test |""".stripMargin('@')
+
+    MarkdownTableConverter.convert(columns)(data) shouldEqual expected
+  }
+
+  def convertNewlineToHtmlBreak: MatchResult[Any] = {
+    val data = NonEmptyList.of(
+      DataItem("test \n test", 42, 4.5)
+    )
+
+
+    val columns = NonEmptyList.of(
+      Column[DataItem]("First", _.one)
+    )
+
+    val expected =
+      """| First |
+        @|---|
+        @| test <br/> test |""".stripMargin('@')
 
     MarkdownTableConverter.convert(columns)(data) shouldEqual expected
   }

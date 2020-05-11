@@ -4,6 +4,7 @@ import com.abstractcode.unifimarkdownextractor.unifiapi.models.FirewallRule._
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.Identifiers._
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
 import io.circe.syntax._
+import cats.Show
 import cats.implicits._
 
 case class FirewallRule(
@@ -11,7 +12,7 @@ case class FirewallRule(
   siteId: SiteId,
   name: String,
   index: Int,
-  ruleset: RuleSet,
+  ruleSet: RuleSet,
   ruleSubset: RuleSubset,
   action: Action,
   source: Source,
@@ -31,6 +32,15 @@ object FirewallRule {
   case object WANV6 extends RuleSet
   case object LANV6 extends RuleSet
   case object GuestV6 extends RuleSet
+
+  implicit val showFirewallRuleRuleSet: Show[RuleSet] = Show.show {
+    case WAN => "WAN"
+    case LAN => "LAN"
+    case Guest => "Guest"
+    case WANV6 => "WAN IPv6"
+    case LANV6 => "LAN IPv6"
+    case GuestV6 => "Guest IPv6"
+  }
 
   implicit val ruleSetDecoder: Decoder[RuleSet] = (c: HCursor) =>
     c.as[String].map(_.split('_').toList).flatMap {
@@ -85,6 +95,12 @@ object FirewallRule {
   case object Accept extends Action
   case object Drop extends Action
   case object Reject extends Action
+
+  implicit val showFirewallRuleAction: Show[Action] = Show.show {
+    case Accept => "Accept"
+    case Drop => "Drop"
+    case Reject => "Reject"
+  }
 
   sealed trait NetworkType
 
@@ -144,6 +160,12 @@ object FirewallRule {
   case class SpecificProtocol(protocol: String) extends Protocol
   case class AllExceptProtocol(protocol: String) extends Protocol
 
+  implicit val showFirewallRuleProtocol: Show[Protocol] = Show.show {
+    case AllProtocols => "all"
+    case SpecificProtocol(p) => p
+    case AllExceptProtocol(p) => s"all except $p"
+  }
+
   implicit val encodeFirewallRuleAction: Encoder[Action] = {
     case Accept => "accept".asJson
     case Drop => "drop".asJson
@@ -157,25 +179,25 @@ object FirewallRule {
     case _ => Left(DecodingFailure("Unknown Firewall Rule Action", Nil))
   }
 
-  implicit val encodeIpSecMatching: Encoder[IpSecMatching] = {
+  implicit val encodeFirewallRuleIpSecMatching: Encoder[IpSecMatching] = {
     case DontMatchIpSec => "".asJson
     case MatchInboundIpSec => "match-ipsec".asJson
     case MatchInboundNonIpSec => "match-none".asJson
   }
 
-  implicit val decodeIpSecMatching: Decoder[IpSecMatching] = (c: HCursor) => c.as[String].flatMap {
+  implicit val decodeFirewallRuleIpSecMatching: Decoder[IpSecMatching] = (c: HCursor) => c.as[String].flatMap {
     case "match-ipsec" => Right(MatchInboundIpSec)
     case "match-none" => Right(MatchInboundNonIpSec)
     case "" => Right(DontMatchIpSec)
     case _ => Left(DecodingFailure("Unknown IP Sec Action", Nil))
   }
 
-  implicit val encodeNetworkType: Encoder[NetworkType] = {
+  implicit val encodeFirewallRuleNetworkType: Encoder[NetworkType] = {
     case IPv4Subnet => "NETv4".asJson
     case GatewayIPAddress => "ADDRv4".asJson
   }
 
-  implicit val decodeNetworkType: Decoder[Option[NetworkType]] = (c: HCursor) => c.as[String].flatMap {
+  implicit val decodeFirewallRuleNetworkType: Decoder[Option[NetworkType]] = (c: HCursor) => c.as[String].flatMap {
     case "NETv4" => Right(Some(IPv4Subnet))
     case "ADDRv4" => Right(Some(GatewayIPAddress))
     case "" => Right(None)
@@ -221,7 +243,7 @@ object FirewallRule {
     ("ipsec", r.ipSecMatching.asJson),
     ("name", r.advancedOptions.contains(EnableLogging).asJson),
     ("name", r.name.asJson),
-    ("ruleset", (r.ruleset, r.ruleSubset).asJson),
+    ("ruleset", (r.ruleSet, r.ruleSubset).asJson),
     ("src_firewallgroup_ids", getFirewallGroups[Source, SourceAddressPortGroup](r.source)),
     ("src_mac_address", getMacAddress(r.source)),
     ("state_established", r.advancedOptions.contains(MatchStateEstablished).asJson),
@@ -241,7 +263,7 @@ object FirewallRule {
     ("site_id", r.siteId.asJson)
   )
 
-  implicit val sourceDecoder: Decoder[Source] = (c: HCursor) => for {
+  implicit val decodeFirewallRuleSource: Decoder[Source] = (c: HCursor) => for {
     firewallGroupIds <- c.downField("src_firewallgroup_ids").as[List[FirewallGroupId]]
     network <- c.downField("src_networkconf_id").as[String].map(n => if (n.isEmpty) None else Some(NetworkId(n)))
     networkType <- c.downField("src_networkconf_type").as[Option[NetworkType]]
@@ -256,7 +278,7 @@ object FirewallRule {
     }
   } yield source
 
-  implicit val destinationDecoder: Decoder[Destination] = (c: HCursor) => for {
+  implicit val decodeFirewallRuleDestination: Decoder[Destination] = (c: HCursor) => for {
     firewallGroupIds <- c.downField("dst_firewallgroup_ids").as[List[FirewallGroupId]]
     network <- c.downField("dst_networkconf_id").as[String].map(n => if (n.isEmpty) None else Some(NetworkId(n)))
     networkType <- c.downField("dst_networkconf_type").as[Option[NetworkType]]
@@ -270,7 +292,7 @@ object FirewallRule {
     }
   } yield destination
 
-  implicit val decodedAdvancedOptions: Decoder[Set[AdvancedOption]] = (c:HCursor) => for {
+  implicit val decodeFirewallRuleAdvancedOptions: Decoder[Set[AdvancedOption]] = (c:HCursor) => for {
     logging <- c.downField("logging").as[Boolean].map(toOption(_, EnableLogging))
     stateNew <- c.downField("state_new").as[Boolean].map(toOption(_, MatchStateNew))
     stateEstablished <- c.downField("state_established").as[Boolean].map(toOption(_, MatchStateEstablished))
@@ -278,7 +300,7 @@ object FirewallRule {
     stateRelated <- c.downField("state_related").as[Boolean].map(toOption(_, MatchStateRelated))
   } yield (logging :: stateNew :: stateEstablished :: stateInvalid :: stateRelated :: Nil).flatten.toSet
 
-  implicit val decodeProtocol: Decoder[Protocol] = (c: HCursor) => for {
+  implicit val decodeFirewallRuleProtocol: Decoder[Protocol] = (c: HCursor) => for {
     protocol <- c.downField("protocol").as[String]
     excepted <- c.downField("protocol_match_excepted").as[Boolean]
   } yield (protocol, excepted) match {

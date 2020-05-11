@@ -23,6 +23,7 @@ trait UniFiApi[F[_]] {
   def sites(authCookies: AuthCookies): F[List[Site]]
   def networks(authCookies: AuthCookies)(name: SiteName): F[List[Network]]
   def firewallGroups(authCookies: AuthCookies)(name: SiteName): F[List[FirewallGroup]]
+  def firewallRules(authCookies: AuthCookies)(name: SiteName): F[List[FirewallRule]]
 }
 
 class HttpUniFiApi[F[_] : Sync](client: Client[F], configuration: ControllerConfiguration)(implicit monadError: ApplicativeError[F, Throwable]) extends UniFiApi[F] {
@@ -95,6 +96,19 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], configuration: ControllerConf
       request,
       authCookies,
       _.as[UniFiResponse[List[FirewallGroup]]]
+    )
+  }
+
+  def firewallRules(authCookies: AuthCookies)(name: SiteName): F[List[FirewallRule]] = {
+    val request: Request[F] = Request[F](
+      method = Method.GET,
+      uri = configuration.serverUri / "api" / "s" / name.name / "rest" / "firewallrule"
+    )
+
+    handleWithAuthentication(
+      request,
+      authCookies,
+      _.as[UniFiResponse[List[FirewallRule]]]
     )
   }
 
