@@ -17,7 +17,7 @@ case class FirewallRule(
   source: Source,
   destination: Destination,
   enabled: Boolean,
-  advancedOptions: Set[AdvancedOptions],
+  advancedOptions: Set[AdvancedOption],
   ipSecMatching: IpSecMatching
 )
 
@@ -61,6 +61,24 @@ object FirewallRule {
       case _ => Left(DecodingFailure("Ruleset format invalid", Nil))
     }
 
+  implicit val ruleComponentsEncoder: Encoder[(RuleSet, RuleSubset)] = (a: (RuleSet, RuleSubset)) => {
+    val major = a._1 match {
+      case WAN => "WAN"
+      case LAN => "LAN"
+      case Guest => "GUEST"
+      case WANV6 => "WANv6"
+      case LANV6 => "LANv6"
+      case GuestV6 => "GUESTv6"
+    }
+    val minor = a._2 match {
+      case In => "IN"
+      case Out => "OUT"
+      case Local => "LOCAL"
+    }
+
+    s"${major}_$minor".asJson
+  }
+
   sealed trait Action
 
   case object Accept extends Action
@@ -72,29 +90,47 @@ object FirewallRule {
   case object IPv4Subnet extends NetworkType
   case object GatewayIPAddress extends NetworkType
 
-  sealed trait Source
+  sealed trait HasFirewallGroups {
+    val firewallGroups: List[FirewallGroupId]
+  }
+  sealed trait HasNetwork {
+    val network: NetworkId
+    val networkType: NetworkType
+  }
+  sealed trait HasIpAddressV4 {
+    val ipAddressV4: IpAddressV4
+  }
 
-  case class SourceAddressPortGroup(firewallGroups: List[FirewallGroupId], macAddress: Option[String]) extends Source
+  sealed trait Source
+  sealed trait HasMacAddress {
+    val macAddress: Option[String]
+  }
+
+  case class SourceAddressPortGroup(firewallGroups: List[FirewallGroupId], macAddress: Option[String])
+    extends Source with HasFirewallGroups with HasMacAddress
   case class SourceNetwork(
     network: NetworkId,
     networkType: NetworkType,
     macAddress: Option[String]
-  ) extends Source
-  case class SourceIPv4Address(ipAddressV4: IpAddressV4, macAddress: Option[String]) extends Source
+  ) extends Source with HasNetwork with HasMacAddress
+  case class SourceIPv4Address(ipAddressV4: IpAddressV4, macAddress: Option[String])
+    extends Source with HasIpAddressV4 with HasMacAddress
 
   sealed trait Destination
 
-  case class DestinationAddressPortGroup(firewallGroups: List[FirewallGroupId]) extends Destination
-  case class DestinationNetwork(network: NetworkId, networkType: NetworkType) extends Destination
-  case class DestinationIPv4Address(ipAddressV4: IpAddressV4) extends Destination
+  case class DestinationAddressPortGroup(firewallGroups: List[FirewallGroupId])
+    extends Destination with HasFirewallGroups
+  case class DestinationNetwork(network: NetworkId, networkType: NetworkType)
+    extends Destination with HasNetwork
+  case class DestinationIPv4Address(ipAddressV4: IpAddressV4) extends Destination with HasIpAddressV4
 
-  sealed trait AdvancedOptions
+  sealed trait AdvancedOption
 
-  case object EnableLogging extends AdvancedOptions
-  case object MatchStateNew extends AdvancedOptions
-  case object MatchStateEstablished extends AdvancedOptions
-  case object MatchStateInvalid extends AdvancedOptions
-  case object MatchStateRelated extends AdvancedOptions
+  case object EnableLogging extends AdvancedOption
+  case object MatchStateNew extends AdvancedOption
+  case object MatchStateEstablished extends AdvancedOption
+  case object MatchStateInvalid extends AdvancedOption
+  case object MatchStateRelated extends AdvancedOption
 
   sealed trait IpSecMatching
 
@@ -140,103 +176,93 @@ object FirewallRule {
     case _ => Left(DecodingFailure("Unknown Network Type", Nil))
   }
 
+  def getFirewallGroups[T, N <: T with HasFirewallGroups](t: T): Json = t match {
+    case h: HasFirewallGroups => h.firewallGroups.asJson
+    case _ => (Nil: List[Unit]).asJson
+  }
+
+  def getNetwork[T, N <: T with HasNetwork](t: T): Json = t match {
+    case h: HasNetwork => h.network.asJson
+    case _ => "".asJson
+  }
+
+  def getNetworkType[T, N <: T with HasNetwork](t: T): Json = t match {
+    case h: HasNetwork => h.networkType.asJson
+    case _ => "".asJson
+  }
+
+  def getIpAddressV4[T, N <: T with HasIpAddressV4](t: T): Json = t match {
+    case h: HasIpAddressV4 => h.ipAddressV4.asJson
+    case _ => "".asJson
+  }
+
+  def getMacAddress(source: Source): Json = (source match {
+    case h: HasMacAddress => h.macAddress.getOrElse("")
+    case _ => ""
+  }).asJson
+
   implicit val encodeFirewallRule: Encoder[FirewallRule] = (r: FirewallRule) => Json.obj(
     ("_id", r.id.asJson),
     ("action", r.action.asJson),
-    (
-      "dst_firewallgroup_ids",
-      (r.destination match {
-        case DestinationAddressPortGroup(groups) => groups
-        case _ => Nil
-      }).asJson
-    ),
+    ("dst_firewallgroup_ids", getFirewallGroups[Destination, DestinationAddressPortGroup](r.destination)),
     ("enabled", r.enabled.asJson),
     ("ipsec", r.ipSecMatching.asJson),
     ("name", r.advancedOptions.contains(EnableLogging).asJson),
     ("name", r.name.asJson),
-    ("ruleset", {
-      val major = r.ruleset match {
-        case WAN => "WAN"
-        case LAN => "LAN"
-        case Guest => "GUEST"
-        case WANV6 => "WANv6"
-        case LANV6 => "LANv6"
-        case GuestV6 => "GUESTv6"
-      }
-      val minor = r.ruleSubset match {
-        case In => "IN"
-        case Out => "OUT"
-        case Local => "LOCAL"
-      }
-
-      s"${major}_$minor".asJson
-    }),
-    (
-      "src_firewallgroup_ids",
-      (r.source match {
-        case SourceAddressPortGroup(groups, _) => groups
-        case _ => Nil
-      }).asJson
-    ),
-    (
-      "src_mac_address",
-      (r.source match {
-        case SourceAddressPortGroup(_, Some(mac)) => mac
-        case SourceNetwork(_, _, Some(mac)) => mac
-        case SourceIPv4Address(_, Some(mac)) => mac
-        case _ => ""
-      }).asJson
-    ),
+    ("ruleset", (r.ruleset, r.ruleSubset).asJson),
+    ("src_firewallgroup_ids", getFirewallGroups[Source, SourceAddressPortGroup](r.source)),
+    ("src_mac_address", getMacAddress(r.source)),
     ("state_established", r.advancedOptions.contains(MatchStateEstablished).asJson),
     ("state_invalid", r.advancedOptions.contains(MatchStateInvalid).asJson),
     ("state_new", r.advancedOptions.contains(MatchStateNew).asJson),
     ("state_related", r.advancedOptions.contains(MatchStateRelated).asJson),
-    (
-      "dst_address",
-      r.destination match {
-        case DestinationIPv4Address(address) => address.asJson
-        case _ => "".asJson
-      }
-    ),
-    (
-      "dst_networkconf_id",
-      r.destination match {
-        case DestinationNetwork(network, _) => network.asJson
-        case _ => "".asJson
-      }
-    ),
-    (
-      "dst_networkconf_type",
-      r.destination match {
-        case DestinationNetwork(_, networkType) => networkType.asJson
-        case _ => "".asJson
-      }
-    ),
-    (
-      "src_address",
-      r.source match {
-        case SourceIPv4Address(address, _) => address.asJson
-        case _ => "".asJson
-      }
-    ),
-    (
-      "src_networkconf_id",
-      r.source match {
-        case SourceNetwork(network, _, _) => network.asJson
-        case _ => "".asJson
-      }
-    ),
-    (
-      "src_networkconf_type",
-      r.source match {
-        case SourceNetwork(_, networkType, _) => networkType.asJson
-        case _ => "".asJson
-      }
-    ),
+    ("dst_address", getIpAddressV4[Destination, DestinationIPv4Address](r.destination)),
+    ("dst_networkconf_id", getNetwork[Destination, DestinationNetwork](r.destination)),
+    ("dst_networkconf_type", getNetworkType[Destination, DestinationNetwork](r.destination)),
+    ("src_address", getIpAddressV4[Source, SourceIPv4Address](r.source)),
+    ("src_networkconf_id", getNetwork[Source, SourceNetwork](r.source)),
+    ("src_networkconf_type",getNetworkType[Source, SourceNetwork](r.source)),
     ("rule_index", r.index.asJson),
     ("logging", r.advancedOptions.contains(EnableLogging).asJson),
     ("site_id", r.siteId.asJson)
   )
+
+  implicit val sourceDecoder: Decoder[Source] = (c: HCursor) => for {
+    firewallGroupIds <- c.downField("src_firewallgroup_ids").as[List[FirewallGroupId]]
+    network <- c.downField("src_networkconf_id").as[String].map(n => if (n.isEmpty) None else Some(NetworkId(n)))
+    networkType <- c.downField("src_networkconf_type").as[Option[NetworkType]]
+    address <- c.downField("src_address").as[IpAddressV4].map(a => Some(a)).recover {
+      case _ => None
+    }
+    macAddress <- c.downField("src_mac_address").as[String].map(m => if (m.isEmpty) None else Some(m))
+    source <- (firewallGroupIds, network, networkType, address) match {
+      case (_, Some(n), Some(nt), _) => Right(SourceNetwork(n, nt, macAddress))
+      case (_, _, _, Some(a)) => Right(SourceIPv4Address(a, macAddress))
+      case (xs, _, _, _) => Right(SourceAddressPortGroup(xs, macAddress))
+    }
+  } yield source
+
+  implicit val destinationDecoder: Decoder[Destination] = (c: HCursor) => for {
+    firewallGroupIds <- c.downField("dst_firewallgroup_ids").as[List[FirewallGroupId]]
+    network <- c.downField("dst_networkconf_id").as[String].map(n => if (n.isEmpty) None else Some(NetworkId(n)))
+    networkType <- c.downField("dst_networkconf_type").as[Option[NetworkType]]
+    address <- c.downField("dst_address").as[IpAddressV4].map(a => Some(a)).recover {
+      case _ => None
+    }
+    destination <- (firewallGroupIds, network, networkType, address) match {
+      case (_, Some(n), Some(nt), _) => Right(DestinationNetwork(n, nt))
+      case (_, _, _, Some(a)) => Right(DestinationIPv4Address(a))
+      case (xs, _, _, _) => Right(DestinationAddressPortGroup(xs))
+    }
+  } yield destination
+
+  implicit val decodedAdvancedOptions: Decoder[Set[AdvancedOption]] = (c:HCursor) => for {
+    logging <- c.downField("logging").as[Boolean].map(toOption(_, EnableLogging))
+    stateNew <- c.downField("state_new").as[Boolean].map(toOption(_, MatchStateNew))
+    stateEstablished <- c.downField("state_established").as[Boolean].map(toOption(_, MatchStateEstablished))
+    stateInvalid <- c.downField("state_invalid").as[Boolean].map(toOption(_, MatchStateInvalid))
+    stateRelated <- c.downField("state_related").as[Boolean].map(toOption(_, MatchStateRelated))
+  } yield (logging :: stateNew :: stateEstablished :: stateInvalid :: stateRelated :: Nil).flatten.toSet
 
   implicit val decodeFirewallRule: Decoder[FirewallRule] = (c: HCursor) => for {
     id <- c.downField("_id").as[FirewallRuleId]
@@ -247,41 +273,10 @@ object FirewallRule {
     ruleset <- rulesetParts.as[RuleSet]
     ruleSubset <- rulesetParts.as[RuleSubset]
     action <- c.downField("action").as[Action]
-    source <- for {
-      firewallGroupIds <- c.downField("src_firewallgroup_ids").as[List[FirewallGroupId]]
-      network <- c.downField("src_networkconf_id").as[String].map(n => if (n.isEmpty) None else Some(NetworkId(n)))
-      networkType <- c.downField("src_networkconf_type").as[Option[NetworkType]]
-      address <- c.downField("src_address").as[IpAddressV4].map(a => Some(a)).recover {
-        case _ => None
-      }
-      macAddress <- c.downField("src_mac_address").as[String].map(m => if (m.isEmpty) None else Some(m))
-      s <- (firewallGroupIds, network, networkType, address) match {
-        case (_, Some(n), Some(nt), _) => Right(SourceNetwork(n, nt, macAddress))
-        case (_, _, _, Some(a)) => Right(SourceIPv4Address(a, macAddress))
-        case (xs, _, _, _) => Right(SourceAddressPortGroup(xs, macAddress))
-      }
-    } yield s
-    destination <- for {
-      firewallGroupIds <- c.downField("dst_firewallgroup_ids").as[List[FirewallGroupId]]
-      network <- c.downField("dst_networkconf_id").as[String].map(n => if (n.isEmpty) None else Some(NetworkId(n)))
-      networkType <- c.downField("dst_networkconf_type").as[Option[NetworkType]]
-      address <- c.downField("dst_address").as[IpAddressV4].map(a => Some(a)).recover {
-        case _ => None
-      }
-      d <- (firewallGroupIds, network, networkType, address) match {
-        case (_, Some(n), Some(nt), _) => Right(DestinationNetwork(n, nt))
-        case (_, _, _, Some(a)) => Right(DestinationIPv4Address(a))
-        case (xs, _, _, _) => Right(DestinationAddressPortGroup(xs))
-      }
-    } yield d
+    source <- c.as[Source]
+    destination <- c.as[Destination]
     enabled <- c.downField("enabled").as[Boolean]
-    advancedOptions <- for {
-      logging <- c.downField("logging").as[Boolean].map(toOption(_, EnableLogging))
-      stateNew <- c.downField("state_new").as[Boolean].map(toOption(_, MatchStateNew))
-      stateEstablished <- c.downField("state_established").as[Boolean].map(toOption(_, MatchStateEstablished))
-      stateInvalid <- c.downField("state_invalid").as[Boolean].map(toOption(_, MatchStateInvalid))
-      stateRelated <- c.downField("state_related").as[Boolean].map(toOption(_, MatchStateRelated))
-    } yield (logging :: stateNew :: stateEstablished :: stateInvalid :: stateRelated :: Nil).flatten.toSet
+    advancedOptions <- c.as[Set[AdvancedOption]]
     ipSecMatching <- c.downField("ipsec").as[IpSecMatching]
   } yield FirewallRule(
     id,
@@ -298,6 +293,6 @@ object FirewallRule {
     ipSecMatching
   )
 
-  def toOption(flag: Boolean, option: AdvancedOptions): Option[AdvancedOptions] =
+  def toOption(flag: Boolean, option: AdvancedOption): Option[AdvancedOption] =
     if (flag) Some(option) else None
 }

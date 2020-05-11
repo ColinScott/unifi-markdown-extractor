@@ -188,7 +188,7 @@ object Generators {
     source <- firewallRuleSource
     destination <- firewallRuleDestination
     enabled <- Gen.oneOf(true, false)
-    advancedOptions <- Gen.containerOf[Set, FirewallRule.AdvancedOptions](
+    advancedOptions <- Gen.containerOf[Set, FirewallRule.AdvancedOption](
       Gen.oneOf(
         FirewallRule.EnableLogging,
         FirewallRule.MatchStateNew,
