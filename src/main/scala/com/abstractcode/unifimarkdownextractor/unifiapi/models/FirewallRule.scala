@@ -18,7 +18,8 @@ case class FirewallRule(
   destination: Destination,
   enabled: Boolean,
   advancedOptions: Set[AdvancedOption],
-  ipSecMatching: IpSecMatching
+  ipSecMatching: IpSecMatching,
+  protocol: Protocol
 )
 
 object FirewallRule {
@@ -138,6 +139,11 @@ object FirewallRule {
   case object MatchInboundIpSec extends IpSecMatching
   case object MatchInboundNonIpSec extends IpSecMatching
 
+  sealed trait Protocol
+  case object AllProtocols extends Protocol
+  case class SpecificProtocol(protocol: String) extends Protocol
+  case class AllExceptProtocol(protocol: String) extends Protocol
+
   implicit val encodeFirewallRuleAction: Encoder[Action] = {
     case Accept => "accept".asJson
     case Drop => "drop".asJson
@@ -201,6 +207,12 @@ object FirewallRule {
     case _ => ""
   }).asJson
 
+  def getProtocol(protocol: Protocol): Json = (protocol match {
+    case SpecificProtocol(p) => p
+    case AllExceptProtocol(p) => p
+    case _ => "all"
+  }).asJson
+
   implicit val encodeFirewallRule: Encoder[FirewallRule] = (r: FirewallRule) => Json.obj(
     ("_id", r.id.asJson),
     ("action", r.action.asJson),
@@ -224,6 +236,8 @@ object FirewallRule {
     ("src_networkconf_type",getNetworkType[Source, SourceNetwork](r.source)),
     ("rule_index", r.index.asJson),
     ("logging", r.advancedOptions.contains(EnableLogging).asJson),
+    ("protocol_match_excepted", (r.protocol match { case _: AllExceptProtocol => true case _ => false }).asJson),
+    ("protocol", getProtocol(r.protocol)),
     ("site_id", r.siteId.asJson)
   )
 
@@ -264,6 +278,15 @@ object FirewallRule {
     stateRelated <- c.downField("state_related").as[Boolean].map(toOption(_, MatchStateRelated))
   } yield (logging :: stateNew :: stateEstablished :: stateInvalid :: stateRelated :: Nil).flatten.toSet
 
+  implicit val decodeProtocol: Decoder[Protocol] = (c: HCursor) => for {
+    protocol <- c.downField("protocol").as[String]
+    excepted <- c.downField("protocol_match_excepted").as[Boolean]
+  } yield (protocol, excepted) match {
+    case ("all", _) => AllProtocols
+    case (p, false) => SpecificProtocol(p)
+    case (p, _) => AllExceptProtocol(p)
+  }
+
   implicit val decodeFirewallRule: Decoder[FirewallRule] = (c: HCursor) => for {
     id <- c.downField("_id").as[FirewallRuleId]
     siteId <- c.downField("site_id").as[SiteId]
@@ -278,6 +301,7 @@ object FirewallRule {
     enabled <- c.downField("enabled").as[Boolean]
     advancedOptions <- c.as[Set[AdvancedOption]]
     ipSecMatching <- c.downField("ipsec").as[IpSecMatching]
+    protocol <- c.as[Protocol]
   } yield FirewallRule(
     id,
     siteId,
@@ -290,7 +314,8 @@ object FirewallRule {
     destination,
     enabled,
     advancedOptions,
-    ipSecMatching
+    ipSecMatching,
+    protocol
   )
 
   def toOption(flag: Boolean, option: AdvancedOption): Option[AdvancedOption] =

@@ -170,6 +170,12 @@ object Generators {
     firewallRuleDestinationIPv4Address
   )
 
+  val firewallRuleProtocol: Gen[FirewallRule.Protocol] = Gen.oneOf(
+    Gen.const(FirewallRule.AllProtocols),
+    Gen.identifier.map(FirewallRule.SpecificProtocol),
+    Gen.identifier.map(FirewallRule.AllExceptProtocol)
+  )
+
   val firewallRule: Gen[FirewallRule] = for {
     id <- firewallRuleId
     siteId <- siteId
@@ -197,6 +203,7 @@ object Generators {
         FirewallRule.MatchStateRelated
       )
     )
+    protocol <- firewallRuleProtocol
     ipSecMatching <- Gen.oneOf(FirewallRule.DontMatchIpSec, FirewallRule.MatchInboundIpSec, FirewallRule.MatchInboundNonIpSec)
   }
     yield FirewallRule(
@@ -211,6 +218,7 @@ object Generators {
       destination,
       enabled,
       advancedOptions,
-      ipSecMatching
+      ipSecMatching,
+      protocol
     )
 }

@@ -32,7 +32,8 @@ class FirewallRuleKnownDetailsSpec extends Specification {
         FirewallRule.DestinationAddressPortGroup(Nil),
         enabled = true,
         Set(FirewallRule.MatchStateEstablished, FirewallRule.MatchStateRelated),
-        FirewallRule.DontMatchIpSec
+        FirewallRule.DontMatchIpSec,
+        FirewallRule.AllProtocols
       )
     )
     decoded shouldEqual expected
@@ -63,7 +64,8 @@ class FirewallRuleKnownDetailsSpec extends Specification {
         ),
         enabled = false,
         Set(FirewallRule.EnableLogging, FirewallRule.MatchStateNew, FirewallRule.MatchStateInvalid),
-        FirewallRule.MatchInboundIpSec
+        FirewallRule.MatchInboundIpSec,
+        FirewallRule.AllExceptProtocol("udp")
       )
     )
     decoded shouldEqual expected
@@ -91,7 +93,8 @@ class FirewallRuleKnownDetailsSpec extends Specification {
         ),
         enabled = true,
         Set(FirewallRule.EnableLogging, FirewallRule.MatchStateNew, FirewallRule.MatchStateInvalid),
-        FirewallRule.MatchInboundNonIpSec
+        FirewallRule.MatchInboundNonIpSec,
+        FirewallRule.SpecificProtocol("tcp")
       )
     )
     decoded shouldEqual expected
@@ -115,7 +118,8 @@ class FirewallRuleKnownDetailsSpec extends Specification {
         FirewallRule.DestinationIPv4Address(IpAddressV4(10, 2, 56, 1)),
         enabled = true,
         Set(),
-        FirewallRule.DontMatchIpSec
+        FirewallRule.DontMatchIpSec,
+        FirewallRule.AllProtocols
       )
     )
     decoded shouldEqual expected

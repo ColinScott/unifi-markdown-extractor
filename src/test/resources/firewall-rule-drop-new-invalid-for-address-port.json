@@ -9,7 +9,7 @@
   "ipsec": "match-ipsec",
   "logging": true,
   "name": "Test 2",
-  "protocol_match_excepted": false,
+  "protocol_match_excepted": true,
   "ruleset": "GUEST_OUT",
   "src_firewallgroup_ids": [
     "38545d563d904f6585b0840c401f1bc0",
@@ -25,7 +25,7 @@
   "dst_networkconf_id": "",
   "dst_networkconf_type": "NETv4",
   "icmp_typename": "",
-  "protocol": "tcp",
+  "protocol": "udp",
   "src_address": "",
   "src_port": "",
   "src_networkconf_id": "",
