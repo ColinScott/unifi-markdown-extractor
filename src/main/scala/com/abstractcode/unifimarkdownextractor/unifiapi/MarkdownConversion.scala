@@ -5,10 +5,17 @@ import cats.implicits._
 import cats.data.NonEmptyList
 import com.abstractcode.unifimarkdownextractor.MarkdownTableConverter
 import com.abstractcode.unifimarkdownextractor.MarkdownTableConverter.Column
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{FirewallGroup, FirewallGroupId, FirewallRule, LocalNetwork, Network, NetworkId, WideAreaNetwork}
+import com.abstractcode.unifimarkdownextractor.unifiapi.models.{FirewallGroup, FirewallGroupId, FirewallRule, LocalNetwork, Network, NetworkId, Site, WideAreaNetwork}
 import com.abstractcode.unifimarkdownextractor.unifiapi.models.IpAddressV4._
 
 object MarkdownConversion {
+  val sites: NonEmptyList[Site] => String = MarkdownTableConverter.convert(
+    NonEmptyList.of[Column[Site]](
+      Column("Name", _.name.name),
+      Column("Description", _.description)
+    )
+  )
+
   val localNetworks: NonEmptyList[LocalNetwork] => String = MarkdownTableConverter.convert(
     NonEmptyList.of[Column[LocalNetwork]](
       Column("Network", _.name.name),
