@@ -12,7 +12,7 @@ case class IpAddressV4(a: Byte, b: Byte, c: Byte, d: Byte) extends IPv4
 object IpAddressV4 {
   implicit val showIpAddressV4: Show[IpAddressV4] = Show.show(ip =>  s"${ip.a & 0xff}.${ip.b & 0xff}.${ip.c & 0xff}.${ip.d & 0xff}")
 
-  implicit val encodeIpAddressV4: Encoder[IpAddressV4] = (a: IpAddressV4) => Json.fromString(a.toString)
+  implicit val encodeIpAddressV4: Encoder[IpAddressV4] = (a: IpAddressV4) => Json.fromString(a.show)
   implicit val decodeIpAddressV4: Decoder[IpAddressV4] = (c: HCursor) => c.as[String].flatMap(ip => {
     ip.split('.').toList.traverse(p => p.toShortOption.map(_.toByte)) match {
       case Some(a :: b :: c :: d :: Nil) =>
@@ -27,7 +27,7 @@ case class CidrV4(networkAddress: IpAddressV4, prefixLength: Byte) extends IPv4
 object CidrV4 {
   implicit val showCidrV4: Show[CidrV4] = Show.show(cidr => s"${cidr.networkAddress.show}/${cidr.prefixLength}")
 
-  implicit val cidrV4Encoder: Encoder[CidrV4] = (r: CidrV4) => Json.fromString(s"${r.networkAddress}/${r.prefixLength}")
+  implicit val cidrV4Encoder: Encoder[CidrV4] = (r: CidrV4) => Json.fromString(s"${r.networkAddress.show}/${r.prefixLength}")
   implicit val cidrV4Decoder: Decoder[CidrV4] = (c: HCursor) => c.as[String].flatMap(v => {
     v.split('/').toList match {
       case ipString :: prefixString :: Nil =>
