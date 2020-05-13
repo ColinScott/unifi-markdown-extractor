@@ -119,7 +119,7 @@ class HttpUniFiApi[F[_] : Sync](client: Client[F], configuration: ControllerConf
   ): F[R] = {
     client.run(request.addAuthCookies(authCookies)).use { response =>
       response.status.responseClass match {
-        case Successful => success(response).map(_.data).handleErrorWith(_ => monadError.raiseError(InvalidResponse))
+        case Successful => success(response).map(_.data).handleErrorWith(e => monadError.raiseError(InvalidResponse(e)))
         case ClientError if response.status.code == 401 => monadError.raiseError[R](TokenUnauthorised)
         case _ => monadError.raiseError[R](UniFiError(response.status))
       }

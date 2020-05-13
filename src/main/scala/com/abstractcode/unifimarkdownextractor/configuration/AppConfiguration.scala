@@ -2,6 +2,7 @@ package com.abstractcode.unifimarkdownextractor.configuration
 
 import java.nio.file.{Path, Paths}
 
+import cats.Show
 import cats.data.ValidatedNel
 import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
@@ -22,6 +23,11 @@ object ParseError {
   sealed trait Reason
   case object NotProvidedOrEmpty extends Reason
   case object InvalidFormat extends Reason
+
+  implicit val showParseError: Show[ParseError] = Show.show {
+    case ParseError(variable, NotProvidedOrEmpty) => s"Environment variable $variable was not provided or is empty"
+    case ParseError(variable, InvalidFormat) => s"Format of environment variable $variable is invalid"
+  }
 }
 
 case class ExportConfiguration(basePath: Path)

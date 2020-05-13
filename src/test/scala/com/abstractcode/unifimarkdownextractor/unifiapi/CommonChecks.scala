@@ -60,6 +60,10 @@ object CommonChecks {
 
     val httpUniFiApp = new HttpUniFiApi[IO](Client.fromHttpApp(mockServer), Fixture.fixedControllerConfiguration)
 
-    propBoolean(apiMethod(httpUniFiApp).attempt.unsafeRunSync() == Left(InvalidResponse))
+    propBoolean(apiMethod(httpUniFiApp).attempt
+      .unsafeRunSync() match {
+      case Left(InvalidResponse(_)) => true
+      case _ => false
+    })
   }
 }

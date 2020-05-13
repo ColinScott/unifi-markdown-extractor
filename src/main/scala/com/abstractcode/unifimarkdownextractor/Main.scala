@@ -6,6 +6,8 @@ import java.security.cert.X509Certificate
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect._
+import cats.implicits._
+import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, ParseError}
 import com.abstractcode.unifimarkdownextractor.exporter.FileExporter
 import com.abstractcode.unifimarkdownextractor.unifiapi.HttpUniFiApi
@@ -26,7 +28,7 @@ object Main extends IOApp {
     } yield ExitCode.Success
   }
 
-  def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors))
+  def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors.map(_.show).toList.mkString("\n")))
 
   override def run(args: List[String]): IO[ExitCode] = {
     val trustingSslContext: SSLContext = {
