@@ -6,7 +6,7 @@ import java.nio.file.{Files, Path}
 import cats._
 import cats.effect._
 import cats.implicits._
-import com.abstractcode.unifimarkdownextractor.Error.DirectoryCreationFailure
+import com.abstractcode.unifimarkdownextractor.ExporterError.DirectoryCreationFailure
 
 object FileActions {
   def createDirectory[F[_] : Monad : Sync](path: Path): F[Unit] = for {

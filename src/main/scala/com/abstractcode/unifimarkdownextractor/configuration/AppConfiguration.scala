@@ -5,17 +5,12 @@ import java.nio.file.{Path, Paths}
 import cats.Show
 import cats.data.ValidatedNel
 import cats.implicits._
+import com.abstractcode.unificlient.ControllerConfiguration
+import com.abstractcode.unificlient.ControllerConfiguration.UniFiCredentials
 import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
 import org.http4s.Uri
 
 case class AppConfiguration(controller: ControllerConfiguration, export: ExportConfiguration)
-
-case class ControllerConfiguration(
-  serverUri: Uri,
-  credentials: Credentials
-)
-
-case class Credentials(username: String, password: String)
 
 case class ParseError(environmentVariable: String, reason: Reason)
 
@@ -52,10 +47,10 @@ object AppConfiguration {
     .filter(!_.trim.isEmpty)
     .toValidNel(ParseError(key, NotProvidedOrEmpty))
 
-  def getCredentials(env: Map[String, String]): ValidatedNel[ParseError, Credentials] = (
+  def getCredentials(env: Map[String, String]): ValidatedNel[ParseError, UniFiCredentials] = (
     getNonEmptyString(env, "USERNAME"),
     getNonEmptyString(env, "PASSWORD")
-    ).mapN(Credentials)
+    ).mapN(UniFiCredentials)
 
   def getExportConfiguration(env: Map[String, String]): ValidatedNel[ParseError, ExportConfiguration] =
     getNonEmptyString(env, "BASE_PATH").map(p => ExportConfiguration(Paths.get(p)))

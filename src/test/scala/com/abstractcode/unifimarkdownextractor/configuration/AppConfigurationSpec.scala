@@ -4,6 +4,8 @@ import java.nio.file.Path
 
 import cats.data._
 import cats.implicits._
+import com.abstractcode.unificlient.ControllerConfiguration
+import com.abstractcode.unificlient.ControllerConfiguration.UniFiCredentials
 import com.abstractcode.unifimarkdownextractor.Arbitraries._
 import com.abstractcode.unifimarkdownextractor.Generators
 import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
@@ -12,23 +14,23 @@ import org.scalacheck.Prop.{forAll, propBoolean}
 import org.scalacheck.{Arbitrary, Gen, Properties}
 
 object AppConfigurationSpec extends Properties("AppConfiguration") {
-  val badUsernameCredentials: Gen[Credentials] = for {
+  val badUsernameCredentials: Gen[UniFiCredentials] = for {
     username <- Generators.whitespaceString
     password <- Generators.nonEmptyOrWhitespaceString
-  } yield Credentials(username, password)
+  } yield UniFiCredentials(username, password)
 
-  val badPasswordCredentials: Gen[Credentials] = for {
+  val badPasswordCredentials: Gen[UniFiCredentials] = for {
     username <- Generators.nonEmptyOrWhitespaceString
     password <- Generators.whitespaceString
-  } yield Credentials(username, password)
+  } yield UniFiCredentials(username, password)
 
-  val entirelyBadCredentials: Gen[Credentials] = for {
+  val entirelyBadCredentials: Gen[UniFiCredentials] = for {
     username <- Generators.whitespaceString
     password <- Generators.whitespaceString
-  } yield Credentials(username, password)
+  } yield UniFiCredentials(username, password)
 
   implicit val controllerConfiguration: Gen[ControllerConfiguration] = for {
-    serverUri <- Generators.uri
+    serverUri <-Generators.uri
     creds <- Generators.credentials
   } yield ControllerConfiguration(serverUri, creds)
 
@@ -60,7 +62,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("invalid uri") = forAll {
-    (credentials: Credentials, path: Path) => {
+    (credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "SERVER_URI" -> "$#^$%&(%",
         "USERNAME" -> credentials.username,
@@ -75,7 +77,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("missing uri") = forAll {
-    (credentials: Credentials, path: Path) => {
+    (credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "USERNAME" -> credentials.username,
         "PASSWORD" -> credentials.password,
@@ -89,7 +91,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("bad username") = forAll(Generators.uri, badUsernameCredentials, Generators.path) {
-    (uri: Uri, credentials: Credentials, path: Path) => {
+    (uri: Uri, credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "SERVER_URI" -> uri.toString(),
         "USERNAME" -> credentials.username,
@@ -104,7 +106,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("bad password") = forAll(Generators.uri, badPasswordCredentials, Generators.path) {
-    (uri: Uri, credentials: Credentials, path: Path) => {
+    (uri: Uri, credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "SERVER_URI" -> uri.toString(),
         "USERNAME" -> credentials.username,
@@ -119,7 +121,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("entirely bad credentials") = forAll(Generators.uri, entirelyBadCredentials, Generators.path) {
-    (uri: Uri, credentials: Credentials, path: Path) => {
+    (uri: Uri, credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "SERVER_URI" -> uri.toString(),
         "USERNAME" -> credentials.username,
@@ -134,7 +136,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("missing username") = forAll {
-    (uri: Uri, credentials: Credentials, path: Path) => {
+    (uri: Uri, credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "SERVER_URI" -> uri.toString(),
         "PASSWORD" -> credentials.password,
@@ -148,7 +150,7 @@ object AppConfigurationSpec extends Properties("AppConfiguration") {
   }
 
   property("missing password") = forAll {
-    (uri: Uri, credentials: Credentials, path: Path) => {
+    (uri: Uri, credentials: UniFiCredentials, path: Path) => {
       val env = Map(
         "SERVER_URI" -> uri.toString(),
         "USERNAME" -> credentials.username,

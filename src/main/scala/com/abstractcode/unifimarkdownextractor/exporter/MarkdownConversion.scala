@@ -1,12 +1,12 @@
-package com.abstractcode.unifimarkdownextractor.unifiapi
+package com.abstractcode.unifimarkdownextractor.exporter
 
 import cats.Show
-import cats.implicits._
 import cats.data.NonEmptyList
+import cats.implicits._
+import com.abstractcode.unificlient.models.IpAddressV4._
+import com.abstractcode.unificlient.models._
 import com.abstractcode.unifimarkdownextractor.MarkdownTableConverter
 import com.abstractcode.unifimarkdownextractor.MarkdownTableConverter.Column
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{FirewallGroup, FirewallGroupId, FirewallRule, LocalNetwork, Network, NetworkId, Site, WideAreaNetwork}
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.IpAddressV4._
 
 object MarkdownConversion {
   val sites: NonEmptyList[Site] => String = MarkdownTableConverter.convert(

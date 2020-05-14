@@ -3,18 +3,23 @@ package com.abstractcode.unifimarkdownextractor.exporter
 import java.nio.file.Path
 
 import cats.Monad
-import cats.data.NonEmptyList
+import cats.data.{Kleisli, NonEmptyList}
 import cats.effect.Sync
 import cats.implicits._
+import com.abstractcode.unificlient.UniFiClient
+import com.abstractcode.unificlient.UniFiClient.UniFiRequest
+import com.abstractcode.unificlient.models._
 import com.abstractcode.unifimarkdownextractor.configuration.ExportConfiguration
-import com.abstractcode.unifimarkdownextractor.unifiapi.models.{AuthCookies, FirewallGroup, FirewallRule, LocalNetwork, Network, Site}
-import com.abstractcode.unifimarkdownextractor.unifiapi.{MarkdownConversion, UniFiApi}
 
 trait SiteExporter[F[_]] {
-  def export(site: Site): F[Unit]
+  def export(site: Site): UniFiRequest[F, Unit]
 }
 
-class FileSiteExporter[F[_] : Monad : Sync](exportConfiguration: ExportConfiguration, uniFiApi: UniFiApi[F], authCookies: AuthCookies) extends SiteExporter[F] {
+object SiteExporter {
+  def apply[F[_]](implicit se: SiteExporter[F]): SiteExporter[F] = se
+}
+
+class FileSiteExporter[F[_] : Monad : Sync : UniFiClient](exportConfiguration: ExportConfiguration) extends SiteExporter[F] {
   val ruleSets: List[FirewallRule.RuleSet] = List(
     FirewallRule.WAN,
     FirewallRule.LAN,
@@ -24,20 +29,27 @@ class FileSiteExporter[F[_] : Monad : Sync](exportConfiguration: ExportConfigura
     FirewallRule.GuestV6
   )
 
-  def export(site: Site): F[Unit] = for {
-    siteDirectory <- Sync[F].delay(exportConfiguration.basePath.resolve(site.name.name))
-    _ <- FileActions.createDirectory[F](siteDirectory)
-    networks <- uniFiApi.networks(authCookies)(site.name)
-    localNetworks = networks
+  def export(site: Site): UniFiRequest[F, Unit] = for {
+    networks <- implicitly[UniFiClient[F]].networks(site.name)
+    firewallGroups <- implicitly[UniFiClient[F]].firewallGroups(site.name)
+    firewallRules <- implicitly[UniFiClient[F]].firewallRules(site.name)
+    _ <- Kleisli.liftF(write(site, networks, firewallGroups, firewallRules))
+  } yield ()
+
+  def write(site: Site, networks: List[Network], firewallGroups: List[FirewallGroup], firewallRules: List[FirewallRule]): F[Unit] = {
+    val localNetworks = networks
       .flatMap { case l: LocalNetwork => Some(l) case _ => None }
       .sortBy(_.vlan.map(_.id).getOrElse(1: Short))
-    _ <- writeLocalNetworks(siteDirectory, localNetworks)
-    firewallGroups <- uniFiApi.firewallGroups(authCookies)(site.name)
-    firewallRules <- uniFiApi.firewallRules(authCookies)(site.name)
-    _ <- writeFirewallGroups(siteDirectory, firewallGroups)
-    rulesWriter = (r: FirewallRule.RuleSet) => writeFirewallRules(siteDirectory, firewallGroups, networks, firewallRules)(r)
-    _ <- ruleSets.traverse_(rulesWriter)
-  } yield ()
+    for {
+      siteDirectory <- Sync[F].delay(exportConfiguration.basePath.resolve(site.name.name))
+      _ <- FileActions.createDirectory[F](siteDirectory)
+      _ <- writeLocalNetworks(siteDirectory, localNetworks)
+      _ <- writeFirewallGroups(siteDirectory, firewallGroups)
+      rulesWriter = (r: FirewallRule.RuleSet) => writeFirewallRules(siteDirectory, firewallGroups, networks, firewallRules)(r)
+      _ <- ruleSets.traverse_(rulesWriter)
+
+    } yield ()
+  }
 
   def writeLocalNetworks(siteDirectory: Path, localNetworks: List[LocalNetwork]): F[Unit] = NonEmptyList.fromList(localNetworks) match {
     case Some(ln) => FileActions.write[F](siteDirectory.resolve("networks.md"), MarkdownConversion.localNetworks(ln))

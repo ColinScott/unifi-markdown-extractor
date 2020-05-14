@@ -4,6 +4,8 @@ Extracts configuration information about UniFi sites and converts it into Markdo
 
 The tool generates a directory structure containing a Markdown files documenting the network and firewall configuration. 
 
+This tool is built on the [AbstractCode UniFi Client](https://github.com/ColinScott/unifi-client)
+
 ## Disclaimer
 
 This tool comes with no warranty of any kind. It may completely destroy your network or otherwise impair its functionality. Use at your own risk.

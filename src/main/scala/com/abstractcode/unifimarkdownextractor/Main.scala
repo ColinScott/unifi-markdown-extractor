@@ -10,7 +10,7 @@ import cats.implicits._
 import com.abstractcode.unifimarkdownextractor.configuration.ParseError._
 import com.abstractcode.unifimarkdownextractor.configuration.{AppConfiguration, ParseError}
 import com.abstractcode.unifimarkdownextractor.exporter.FileExporter
-import com.abstractcode.unifimarkdownextractor.unifiapi.HttpUniFiApi
+import com.abstractcode.unificlient.{HttpUniFiClient, UniFiClient}
 import javax.net.ssl.{SSLContext, X509TrustManager}
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -19,13 +19,16 @@ import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
   def process(appConfiguration: AppConfiguration, client: Client[IO]): IO[ExitCode] = {
-    val uniFiApi = new HttpUniFiApi[IO](client, appConfiguration.controller)
-    val exporter = new FileExporter[IO](uniFiApi, appConfiguration.export)
-    for {
-      authCookies <- uniFiApi.authenticate()
+    implicit val uniFiClient: UniFiClient[IO] = new HttpUniFiClient[IO](client)
+    val exporter = new FileExporter[IO](appConfiguration.export)
+    val action = for {
       _ <- exporter.export
-      _ <- uniFiApi.logout(authCookies)
-    } yield ExitCode.Success
+      _ <- uniFiClient.logout()
+    } yield ()
+
+    action.compose(uniFiClient.authenticate())
+      .run(appConfiguration.controller)
+      .map(_ => ExitCode.Success)
   }
 
   def showConfigError(errors: NonEmptyList[ParseError]): IO[Unit] = IO(println(errors.map(_.show).toList.mkString("\n")))
