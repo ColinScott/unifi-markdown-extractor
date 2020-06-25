@@ -1,3 +1,6 @@
+# DEPRECATED
+
+Code has been moved into [unifi-client](https://github.com/ColinScott/unifi-client) 
 # UniFi Markdown Extractor
 
 Extracts configuration information about UniFi sites and converts it into Markdown for documentation purposes.
